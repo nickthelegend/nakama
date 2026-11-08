@@ -1,4 +1,6 @@
-import 'dotenv/config';
+import { config as loadEnv } from 'dotenv';
+import { fileURLToPath } from 'node:url';
+loadEnv({ path: fileURLToPath(new URL('../../../.env', import.meta.url)), quiet: true });
 import { createServer, type ServerResponse } from 'node:http';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
@@ -10,14 +12,14 @@ import { cost } from '@mysten/deepbook-v3/predict';
 type Order={address:string;size:number;digest:string;recordId?:string;status:'enqueued'|'filled'|'refunded'|'settled';orderId?:string;cost?:number;fillDigest?:string;payoutDigest?:string;pnl?:number;hit?:boolean};
 type Call={id:string;crewId:string;caller:string;why:string;setup:Setup;marketId:string;expiryMs:number;strike:number;upper?:number;createdAt:string;orders:Order[];status:'live'|'expired'|'settled';crewRecord?:ReturnType<typeof record>;callerRecord?:ReturnType<typeof personalRecord>;recalled?:string[];memoryBlobId?:string};
 type Crew={id:string;name:string;members:string[];createdAt:string;calls:Call[];playbook?:{best:string;worst:string;blobId?:string}[]};
-const dbPath='data/crews.json'; let crews:Crew[]=[]; try{crews=JSON.parse(await readFile(dbPath,'utf8'))}catch{}
+const dbPath=fileURLToPath(new URL('../../../data/crews.json', import.meta.url)); let crews:Crew[]=[]; try{crews=JSON.parse(await readFile(dbPath,'utf8'))}catch{}
 const listeners=new Set<ServerResponse>(); const prepared=new Map<string,{callId:string;address:string;size:number;at:number}>();
 const samples:{at:number;spot:number}[]=[];
 const missing=(n:string)=>process.env[n]?null:`Setup required: ${n}`;
 const live=()=>process.env.NAKAMA_ALLOW_MAINNET==='I_ACKNOWLEDGE_REAL_USDC';
 function safeError(e:unknown){let s=String(e);for(const n of ['TATUM_API_KEY','MEMWAL_MAINNET_KEY','MEMWAL_MAINNET_ACCOUNT_ID','OPENROUTER_API_KEY']){const v=process.env[n];if(v)s=s.replaceAll(v,'[redacted]')}return s}
 function respond(res:ServerResponse,code:number,value:unknown){res.writeHead(code,{'content-type':'application/json','access-control-allow-origin':'*'});res.end(JSON.stringify(value,(_,v)=>typeof v==='bigint'?String(v):v))}
-async function save(){await mkdir('data',{recursive:true});await writeFile(dbPath,JSON.stringify(crews,null,2));for(const r of listeners)r.write(`data: ${JSON.stringify({type:'crews'})}\n\n`)}
+async function save(){await mkdir(fileURLToPath(new URL('../../../data', import.meta.url)),{recursive:true});await writeFile(dbPath,JSON.stringify(crews,null,2));for(const r of listeners)r.write(`data: ${JSON.stringify({type:'crews'})}\n\n`)}
 async function body(req:AsyncIterable<Uint8Array>){let s='';for await(const c of req){s+=c.toString();if(s.length>20000)throw Error('Body too large')}return JSON.parse(s)}
 const address=(s:unknown)=>{if(typeof s!=='string'||!/^0x[0-9a-f]{64}$/i.test(s))throw Error('Invalid Sui address');return s.toLowerCase()};
 const crew=(id:string)=>{const c=crews.find(x=>x.id===id);if(!c)throw Error('Crew not found');return c};
