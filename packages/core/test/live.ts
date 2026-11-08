@@ -1,0 +1,14 @@
+import { chain, markets } from '../src/index.js';
+import { strict as assert } from 'node:assert';
+const c=chain(); const live=await markets();
+assert.equal(live.rpc,process.env.TATUM_API_KEY?'Tatum':'dev RPC (not Tatum)');
+assert.equal(live.mode,'delayed');
+const btc=live.markets.filter(m=>m.underlying==='BTC' && [1,5].includes(m.cadence));
+assert.ok(btc.length>0);
+console.log(`LIVE READ ${live.rpc}: ${btc.length} BTC markets, mode ${live.mode}`);
+const market=btc.find(m=>m.suggestedStrike && m.expiryMs>Date.now()+20_000);assert.ok(market);
+const owner='0x0000000000000000000000000000000000000000000000000000000000000001';
+const descriptor={underlying:'BTC',expiryMs:market.expiryMs,marketId:market.id,side:'up' as const,strike:market.suggestedStrike!};
+const quote=await c.predict.read.planMint(owner,descriptor,{amount:2,slippageCents:5});
+assert.ok(quote.potentialPayout>0);
+console.log(`LIVE PLAN: payout ${quote.potentialPayout.toFixed(2)} USDC, fee ${quote.orderFee.toFixed(2)}, refusal ${quote.refusal??'none'}; no order submitted`);
