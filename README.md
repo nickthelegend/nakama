@@ -28,3 +28,7 @@ The server holds no member private keys. The browser wallet client routes its ch
 ## Source credit
 
 The Tatum-backed Sui client, Predict market and plan helpers, and Walrus Memory wrapper were adapted from `../eidolon/packages/core` in this workspace. Nakama adds crew and member memory schemas (`NAKAMA_V1`), sizing, streaks, and the collaborative flow. DeepBook Predict uses `@mysten/deepbook-v3/predict` 2.8.1 with `getConfig('mainnet')`, `planMint`, `enqueuePlan`, and `waitForOutcome`.
+
+## Art
+
+Art generated with ChatGPT (image generation), directed in [docs/ART.md](docs/ART.md); source PNGs stay out of git and the web app ships WebP copies in `packages/web/public/art/`.
