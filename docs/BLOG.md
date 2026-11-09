@@ -41,13 +41,13 @@ This is the part that is **not live yet**. The loop has four steps:
 3. **Warn about cold setups.** If the crew has made 3 or more similar calls with under 40% wins, the setup is flagged cold before anyone joins.
 4. **Reuse what works.** The composer pre-fills from the crew's best setup that has at least two calls behind it. An optional LLM recap summarizes the crew's recent run, using only the recalled Walrus facts.
 
-The honest status: **there are 0 Nakama memories on Walrus mainnet today.** The Memory account ID is pending, and no real signed round has happened on mainnet; that needs our hub wallet funded. The write path (fund a Predict account, join with a real queued order, verify the receipt) has run on a local fork of Sui mainnet with real Move execution and no real money. The fork has no Predict keeper and a frozen clock, so fills, settlement and payouts couldn't be shown there. Until memory exists, the crew board shows each member's record decoded from public on-chain Predict history, labelled that way.
+The honest status: **there are 0 Nakama memories on Walrus mainnet today.** The memory side is ready. Nakama has its own delegate key on our Walrus Memory account, and it authenticates to the mainnet relayer. But memories are written only when members join and calls settle, and no real signed round has happened on mainnet. That needs our hub wallet funded. Mainnet blobs also took over 60 seconds to certify, so each write now waits up to five minutes. The write path (fund a Predict account, join with a real queued order, verify the receipt) has run on a local fork of Sui mainnet with real Move execution and no real money. The fork has no Predict keeper and a frozen clock, so fills, settlement and payouts couldn't be shown there. Until memory exists, the crew board shows each member's record decoded from public on-chain Predict history, labelled that way.
 
-The plan to meet the event's minimum of 10 memories is small and concrete: one crew, two members (2 membership records), three settled calls (3 call records and 6 member results). That makes 11 memories, and the first five settled calls produce the first playbook.
+The plan to meet the event's minimum of 10 memories is small and concrete: one crew, two members (2 membership records), three settled calls (3 call records and 6 member results). That makes 11 or more memories, and the first five settled calls produce the first playbook.
 
 ## What's next
 
-Fund the hub, run one real two-member round on mainnet through Tatum, let it settle, and write the first memories. We'll update this post with the digests and blob IDs when that happens.
+Fund the hub, which funds the two demo members (they exist and are unfunded today), run one real two-member round on mainnet through Tatum, let it settle, and write the first memories. We'll update this post with the digests and blob IDs when that happens.
 
 Code: `<repo link, PENDING public>`. Film: `<film link, PENDING upload>`.
 

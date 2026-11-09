@@ -1,6 +1,6 @@
 # Nakama 仲間
 
-**Make small Bitcoin calls with your friends, as a crew.** One friend posts a call ("BTC above $73,766 in 5 minutes"), and everyone else joins with one tap. Each person signs their own small bet from their own wallet, so nobody holds anyone else's money. After each round, the crew's results go into Walrus Memory, and next time Nakama recalls what worked for this crew to suggest a stake and warn about setups that keep losing. (Market reads and dry-runs are live on mainnet today; memory writes and real signed rounds are **PENDING** keys and funding, see the status table.)
+**Make small Bitcoin calls with your friends, as a crew.** One friend posts a call ("BTC above $73,766 in 5 minutes"), and everyone else joins with one tap. Each person signs their own small bet from their own wallet, so nobody holds anyone else's money. After each round, the crew's results go into Walrus Memory, and next time Nakama recalls what worked for this crew to suggest a stake and warn about setups that keep losing. (Market reads and dry-runs are live on mainnet today. Walrus Memory is ready with 0 Nakama memories so far. Memory writes and real signed rounds are **PENDING** the funded mainnet run, see the status table.)
 
 Built for **Total Recall (Tatum x Walrus Memory)**, track **03 Consumer Finance Apps**, on Sui mainnet with DeepBook Predict. Submission answers: [HACKATHON_SUBMISSION_FORM.md](HACKATHON_SUBMISSION_FORM.md). Blog post: [docs/BLOG.md](docs/BLOG.md).
 
@@ -12,12 +12,13 @@ Built for **Total Recall (Tatum x Walrus Memory)**, track **03 Consumer Finance 
 | One-tap quote and transaction dry-run | **Live** on mainnet, through the public fullnode (UI badge "dev RPC (not Tatum)") | Re-check through Tatum with the new rate limiter; the first Tatum smoke test got HTTP 429 on simulation |
 | Tatum gRPC reads | **Verified Nov 9**: gas price, plus `getTransaction` decoded into a Predict fill | – |
 | Member history from on-chain fills and payouts | **Live** (event scans use the public fullnode, because Tatum's gateway refuses `ListEvents`) | – |
-| Funding a Predict account, joining a call with a real queued order, verifying the receipt | **LOCAL FORK only** ([docs/FORK.md](docs/FORK.md)) | **PENDING:** the hub needs funding for one signed crew round on mainnet (about 6 USDC + 0.6 SUI for two members) |
+| Funding a Predict account, joining a call with a real queued order, verifying the receipt | **LOCAL FORK only** ([docs/FORK.md](docs/FORK.md)) | **PENDING:** hub funding (40 USDC + 2.5 SUI to `0xf5887bcf…1f11`). One signed crew round on mainnet needs about 6 USDC + 0.6 SUI of it for the two demo members, who are unfunded today |
 | Fills, settlement and payouts recorded by the watcher | **Not proven anywhere.** The fork has no Predict keeper and a frozen clock | **PENDING:** a real mainnet round that the keeper fills and the market settles |
 | Sending a signed transaction through Tatum | **Not exercised** | **PENDING:** the same mainnet round |
-| Walrus Memory writes and recall | **Not live: 0 memories on mainnet.** The event requires at least 10 | **PENDING:** `MEMWAL_MAINNET_ACCOUNT_ID` + `MEMWAL_MAINNET_KEY`, then settled rounds. Plan: 1 crew, 2 members, 3 settled calls = 2 + 3 + 6 = 11 memories |
+| Walrus Memory writes and recall | **Ready, 0 memories so far.** Nakama's own delegate key authenticates to the mainnet relayer (details under Proof). The event requires at least 10 | **PENDING:** the funded mainnet run. Memories are written when members join and when calls settle (a call memory, a result per member, and a playbook every five calls). 3 calls with 2 members gives 2 + 3 + 6 = 11 or more |
 | LLM crew recap | Built, off without a key | `OPENROUTER_API_KEY` |
 | Public repo and film link | **PENDING** | Secret scan and Nick's yes; film upload |
+| Tatum account ID (form), published blog and post | **PENDING** | Nick |
 
 ## Try it
 
@@ -51,7 +52,17 @@ Live signing needs `NAKAMA_ALLOW_MAINNET=I_ACKNOWLEDGE_REAL_USDC`, a member wall
 | UI walkthrough, two members | 2 × "Dry-run success", 2.00 USDC debit, 0.02 USDC fee, no order submitted | [TESTING.md](TESTING.md); raw take `videos/round2/nakama-raw.mp4` |
 | Entry-band check | 25.9% (in band) for a near strike, 0.005% (out) for a far one; a $76,000 strike was refused | [TESTING.md](TESTING.md) |
 | Decoded public fills (other traders' trades, read by Nakama) | [HdAZr7bC…8fPp](https://suiscan.xyz/mainnet/tx/HdAZr7bCEQyuaaq4eFBU29ad1V6BWuZPYSxhRTGt8fPp), [BNFnd7fh…LGB](https://suiscan.xyz/mainnet/tx/BNFnd7fhctRdqLDUzNTXcpfpeMFBfdqkJuj2oe2yBLGB), [GVwMyPLY…mYVC](https://suiscan.xyz/mainnet/tx/GVwMyPLY8kFGz6oUmmTVmuA3b3VCgrXcpGLbNGPxmYVC) | [docs/DEMO-ADDRESSES.md](docs/DEMO-ADDRESSES.md) |
-| Walrus Memory blobs | **None yet (PENDING keys)** | – |
+| Walrus Memory blobs | **0 so far (PENDING the funded mainnet run)**. The account and delegate key are ready, see below | – |
+
+**Walrus Memory on mainnet: ready, no memories yet.**
+
+| What | Result |
+|---|---|
+| Account ID (public, on chain) | `0xd2ca3cbe1bd663a5fe7df7c14590451bbc712255cfee59966b0b8413cdaa335a`, owner `0x0cff6ac3b0396c3b449de58472dcf9cfd55f0bb2aefaca92c43315de128c7e93` |
+| How it was found | On chain, not from a dashboard. The relayer's `GET https://relayer.memory.walrus.xyz/config` gives package `0xe7c16fbea0560e7057e2bf7422feaa4fb313749fc69c9e9092fac7a33b81d7f5`. Its `account::DelegateKeyAdded` events list Nakama's delegate key (label "3") under that account |
+| Delegate key | Nakama signs with its own delegate key. `POST /api/stats` on the mainnet relayer returned the owner above |
+| Memories stored | **0.** They need the funded mainnet run |
+| Write wait | Mainnet blobs took over 60 s to certify, so each write now waits up to 300 s (`872371c`) |
 
 **LOCAL FORK of Sui mainnet (checkpoint 343353046): fork-only digests.** These exist only on a local fork. They are **not on Suiscan** and moved no real funds. They show that the write path executes real Move code.
 
@@ -70,13 +81,15 @@ The fork could not show fills, settlement, payouts, Walrus writes or sending thr
 
 ## How it works (technical)
 
-Your crew's live BTC calls, one tap to join. Crew and member records are recalled from Walrus Memory once its keys are set (PENDING, see the status table). Each member signs their own DeepBook Predict queued order in their Sui wallet.
+Your crew's live BTC calls, one tap to join. Crew and member records are recalled from Walrus Memory. Its delegate key is set and authenticates, but 0 memories exist until the funded mainnet run (PENDING, see the status table). Each member signs their own DeepBook Predict queued order in their Sui wallet.
 
 ## Demo signer (recording only)
 
 For the recorded headless mainnet demo, set `DEMO_SIGNER=I_UNDERSTAND_SERVER_HOLDS_KEYS` and put Sui `suiprivkey…` strings in `DEMO_MEMBER_A_KEY` and `DEMO_MEMBER_B_KEY` in this repo's gitignored `.env`. The wallet picker then offers **Demo signer (server-held key)** for the two members. A persistent badge identifies the connected wallet as a server-held demo key using real mainnet funds.
 
 This is a custodial demo wallet: the server holds both keys, and each account is funded with a small amount from the hub. It is off by default. The server signs only its own prepared transaction bytes for the matching member within 60 seconds; preview crews cannot sign, and `/execute` still requires the existing mainnet write gate. Never use these demo keys as personal wallets or expose this server to untrusted clients during recording.
+
+The mainnet demo members exist: A `0xff89f27517a58d07c7ac4fb61b67188b4d120575f8165d52d66c8e84a3672ed2` and B `0x77cac45835174e0cdbb4f361e3e007dfb1704a8840a15c3f48a6ff1a9aba13d4`. Both are unfunded until the hub is funded (see [BLOCKED.md](BLOCKED.md)).
 
 ## Run
 
@@ -91,7 +104,7 @@ Open <http://localhost:5173>. Set `NAKAMA_PORT` and `NAKAMA_VITE_PORT` to use ot
 
 Predict admits a new one-sided bet only while its win probability is inside the 15–50% entry band. `GET /odds` and `GET /calls/:id/odds` read the live pricer for a strike. The composer shows the odds under the strike and disables **Post** outside the band, and `POST /crews/:id/calls` refuses such calls. The live call card polls its odds every 8 seconds, draws the band, and shows **Entry closed** once the strike drifts out, before anyone taps into a refusal.
 
-The server stores crew state in gitignored `data/crews.json`. It writes membership, settled calls, member results and a playbook after every five settled calls to Walrus Memory mainnet. Crew and member namespaces are `nakama-v1:crew:<crewId>` and `nakama-v1:member:<address>`. Writes run at most 30 per minute; the wrapper backs off on 429. Calls have a setup record, and the composer pre-fills from a recalled hot setup. The crew recap asks OpenRouter to summarize recalled memory only.
+The server stores crew state in gitignored `data/crews.json`. It writes membership, settled calls, member results and a playbook after every five settled calls to Walrus Memory mainnet. Each write waits up to 300 s, because mainnet blobs took over 60 s to certify. Crew and member namespaces are `nakama-v1:crew:<crewId>` and `nakama-v1:member:<address>`. Writes run at most 30 per minute; the wrapper backs off on 429. Calls have a setup record, and the composer pre-fills from a recalled hot setup. The crew recap asks OpenRouter to summarize recalled memory only.
 
 ## API
 

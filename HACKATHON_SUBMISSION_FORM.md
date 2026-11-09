@@ -24,7 +24,7 @@ Nakama checks Predict's live odds before a call goes up. Predict only accepts a 
 
 After the market settles, Nakama writes the outcome to Walrus Memory: the call, each member's result, and every five calls a crew playbook. The next time a similar setup comes up, it recalls the crew's record for that setup and the member's own record. It uses them to suggest a stake size, flag cold setups and pre-fill the composer with the crew's best setup.
 
-**Status today.** Mainnet market reads, odds checks, quotes and transaction dry-runs work. The full write path (fund a Predict account, join a call with a real queued order, verify the receipt) has been proven on a **local fork of Sui mainnet** only. **PENDING:** a signed crew round on mainnet needs the hub wallet funded (about 6 USDC and 0.6 SUI for two members). Walrus Memory writes need the Memory account ID; there are **0 Nakama memories on mainnet today**, and the event requires at least 10.
+**Status today.** Mainnet market reads, odds checks, quotes and transaction dry-runs work. The full write path (fund a Predict account, join a call with a real queued order, verify the receipt) has been proven on a **local fork of Sui mainnet** only. **PENDING:** a signed crew round on mainnet needs hub funding (40 USDC and 2.5 SUI to `0xf5887bcfaa178fbcc29f560afce15734e13989955100f9a6b6154c34a79c1f11`; about 6 USDC and 0.6 SUI of it for the two demo members, who are unfunded). Walrus Memory is ready: Nakama's own delegate key authenticates to the mainnet relayer. There are **0 Nakama memories on mainnet today**, and the event requires at least 10. They are written by the funded mainnet run.
 
 ## How it uses Walrus Memory
 
@@ -44,9 +44,9 @@ Nakama uses `@mysten-incubation/memwal` against the mainnet relayer `https://rel
 - pre-fill the composer from the crew's best-performing setup (at least 2 calls);
 - write an optional crew recap with an LLM (OpenRouter), which is told to use only the recalled facts.
 
-Writes are capped at 30 a minute and back off on HTTP 429.
+Writes are capped at 30 a minute and back off on HTTP 429. Mainnet blobs took over 60 s to certify, so each write waits up to 300 s.
 
-**PENDING:** no memory has been written to mainnet yet, so the recall loop has not run against real data. It needs `MEMWAL_MAINNET_ACCOUNT_ID` plus a delegate key in `MEMWAL_MAINNET_KEY`, and settled rounds to write about. The plan for at least 10 memories: one crew with 2 members (2 `membership`) and 3 settled calls (3 `call` + 6 `result`) makes 11.
+**PENDING:** no memory has been written to mainnet yet, so the recall loop has not run against real data. The account and Nakama's delegate key are ready and authenticate. What is missing is settled rounds to write about, which need the funded mainnet run. The plan for at least 10 memories: one crew with 2 members (2 `membership`) and 3 settled calls (3 `call` + 6 `result`) makes 11 or more.
 
 ## How it uses Tatum
 
@@ -85,7 +85,9 @@ The server's chain client uses **Tatum's native Sui gRPC gateway** (`sui-mainnet
 
 ## MEMWAL_AGENT_ID
 
-`<MEMWAL_AGENT_ID>`: **Nick fills** (the Walrus Memory account from the dashboard; the code reads it as `MEMWAL_MAINNET_ACCOUNT_ID`). PENDING until the account exists.
+`0xd2ca3cbe1bd663a5fe7df7c14590451bbc712255cfee59966b0b8413cdaa335a`
+
+This is the Walrus Memory account ID. The code reads it as `MEMWAL_MAINNET_ACCOUNT_ID`. It is public and on chain: the relayer's `GET /config` gives package `0xe7c16fbea0560e7057e2bf7422feaa4fb313749fc69c9e9092fac7a33b81d7f5`, and its `account::DelegateKeyAdded` events list Nakama's delegate key (label "3") under this account. The owner is `0x0cff6ac3b0396c3b449de58472dcf9cfd55f0bb2aefaca92c43315de128c7e93`. One account serves Nakama, Eidolon and Yojimbo, and each app signs with its own delegate key.
 
 ## Team
 
