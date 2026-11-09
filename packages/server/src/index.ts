@@ -16,8 +16,8 @@ const dbPath=fileURLToPath(new URL('../../../data/crews.json', import.meta.url))
 const listeners=new Set<ServerResponse>(); const prepared=new Map<string,{callId:string;address:string;size:number;at:number}>();
 const samples:{at:number;spot:number}[]=[];
 const missing=(n:string)=>process.env[n]?null:`Setup required: ${n}`;
-const live=()=>process.env.NAKAMA_ALLOW_MAINNET==='I_ACKNOWLEDGE_REAL_USDC';
-function safeError(e:unknown){let s=String(e);for(const n of ['TATUM_API_KEY','MEMWAL_MAINNET_KEY','MEMWAL_MAINNET_ACCOUNT_ID','OPENROUTER_API_KEY']){const v=process.env[n];if(v)s=s.replaceAll(v,'[redacted]')}return s}
+const live=()=>process.env.NAKAMA_ALLOW_MAINNET==='I_ACKNOWLEDGE_REAL_USDC'&&!!process.env.TATUM_API_KEY;
+function safeError(e:unknown){let s=String(e);for(const n of ['TATUM_API_KEY','MEMWAL_MAINNET_KEY','MEMWAL_MAINNET_ACCOUNT_ID','OPENROUTER_API_KEY','NAKAMA_DEV_SUI_RPC']){const v=process.env[n];if(v)s=s.replaceAll(v,'[redacted]')}return s}
 function respond(res:ServerResponse,code:number,value:unknown){res.writeHead(code,{'content-type':'application/json','access-control-allow-origin':'*'});res.end(JSON.stringify(value,(_,v)=>typeof v==='bigint'?String(v):v))}
 async function save(){await mkdir(fileURLToPath(new URL('../../../data', import.meta.url)),{recursive:true});await writeFile(dbPath,JSON.stringify(crews,null,2));for(const r of listeners)r.write(`data: ${JSON.stringify({type:'crews'})}\n\n`)}
 async function body(req:AsyncIterable<Uint8Array>){let s='';for await(const c of req){s+=c.toString();if(s.length>20000)throw Error('Body too large')}return JSON.parse(s)}

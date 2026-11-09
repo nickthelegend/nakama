@@ -414,8 +414,8 @@ export function App() {
               </h2>
               <p className="why">“{active.why}”</p>
               <p className="muted small">
-                Called by {short(active.caller)} · crew is {active.crewRecord?.wins ?? 0}/{active.crewRecord?.calls ?? 0} on
-                this setup {active.crewRecord?.cold && <b className="cold">COLD SETUP</b>}
+                Called by {short(active.caller)}
+                {status?.memoryConfigured && <> · crew is {active.crewRecord?.wins ?? 0}/{active.crewRecord?.calls ?? 0} on this setup {active.crewRecord?.cold && <b className="cold">COLD SETUP</b>}</>}
               </p>
               <Recalled ids={active.recalled} />
               <div className="joiners">
@@ -441,7 +441,7 @@ export function App() {
                   )}
                 </button>
               )}
-              {suggestion?.member && (
+              {status?.memoryConfigured && suggestion?.member && (
                 <p className="muted small">
                   Your record from Walrus Memory {suggestion.member.record.wins}/{suggestion.member.record.calls} ·{' '}
                   {suggestion.member.streak} win streak
@@ -507,9 +507,7 @@ export function App() {
               Why
               <input maxLength={280} value={why} onChange={(e) => setWhy(e.target.value)} placeholder="What do you see?" />
             </label>
-            <p className="muted small">
-              Crew record on this setup: {composer?.record.wins ?? 0}/{composer?.record.calls ?? 0}
-            </p>
+            {status?.memoryConfigured && <p className="muted small">Crew record on this setup: {composer?.record.wins ?? 0}/{composer?.record.calls ?? 0}</p>}
             <button className="cta" disabled={!joined || busy || !marketId || !why.trim()} onClick={postCall}>
               Post call to the crew
             </button>
@@ -607,8 +605,8 @@ export function App() {
       )}
 
       <footer className="foot">
-        DeepBook Predict on Sui mainnet · memory on Walrus · chain reads via Tatum · each member signs their own order · art
-        generated with ChatGPT
+        DeepBook Predict on Sui mainnet · memory on Walrus · chain reads via {status?.rpc ?? 'configured RPC'} ·
+        wallet members sign their own orders · art generated with ChatGPT
       </footer>
     </div>
   );
