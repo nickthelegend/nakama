@@ -4,23 +4,14 @@ export const short = (s: string) => `${s.slice(0, 6)}…${s.slice(-4)}`;
 export const usd = (n: number) => `$${n.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
 export const signed = (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${Math.abs(n).toFixed(2)}`;
 
-// A member's face is derived from their own Sui address: two hues from its bytes and its first two hex digits.
+// A member's face is derived from their own Sui address: one of the crew portraits, on a ring in a colour from its bytes.
 export function Avatar({ address, size = 40, ring = false }: { address: string; size?: number; ring?: boolean }) {
   const hex = address.replace(/^0x/, '');
   const h1 = parseInt(hex.slice(0, 6), 16) % 360;
-  const h2 = (h1 + 40 + (parseInt(hex.slice(6, 10), 16) % 80)) % 360;
+  const n = (parseInt(hex.slice(6, 10), 16) % 4) + 1;
   return (
-    <span
-      className={`avatar ${ring ? 'avatar-ring' : ''}`}
-      aria-hidden="true"
-      style={{
-        width: size,
-        height: size,
-        fontSize: Math.round(size * 0.36),
-        background: `linear-gradient(135deg, hsl(${h1} 86% 62%), hsl(${h2} 80% 52%))`,
-      }}
-    >
-      {hex.slice(0, 2)}
+    <span className={`avatar ${ring ? 'avatar-ring' : ''}`} aria-hidden="true" style={{ width: size, height: size, background: `hsl(${h1} 90% 62%)` }}>
+      <img src={`/art/v2/nakama-avatar-${n}.webp`} alt="" width={size} height={size} />
     </span>
   );
 }

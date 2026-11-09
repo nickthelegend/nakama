@@ -185,7 +185,6 @@ export function App() {
     setTapResult(null);
   }, [owner]);
   const [copied, setCopied] = useState(false);
-  const [heroVideo, setHeroVideo] = useState<'loading' | 'ready' | 'failed'>('loading');
   const [busy, setBusy] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [recap, setRecap] = useState('');
@@ -396,17 +395,6 @@ export function App() {
   const best = loaded.length > 1 ? loaded.reduce((a, b) => (b.pnl > a.pnl ? b : a)) : null;
   const leader = best && best.pnl > 0 ? best.address : null;
 
-  // Hero parallax: the art and stickers drift a few pixels with the pointer (off under reduced motion via CSS).
-  const parallax = (e: React.PointerEvent<HTMLElement>) => {
-    const r = e.currentTarget.getBoundingClientRect();
-    e.currentTarget.style.setProperty('--px', ((e.clientX - r.left) / r.width - 0.5).toFixed(3));
-    e.currentTarget.style.setProperty('--py', ((e.clientY - r.top) / r.height - 0.5).toFixed(3));
-  };
-  const parallaxReset = (e: React.PointerEvent<HTMLElement>) => {
-    e.currentTarget.style.setProperty('--px', '0');
-    e.currentTarget.style.setProperty('--py', '0');
-  };
-
   const size = Math.max(2, suggestion?.member?.size ?? 2);
   const boosted = suggestion?.member?.multiplier === 1.5;
   const liveMode = writesOn && !viewingAs && !crew?.readOnlyDemo;
@@ -416,177 +404,151 @@ export function App() {
 
   const dirWord = (d: Direction) => (d === 'up' ? 'above' : d === 'down' ? 'below' : 'between');
 
+  const isValid = /^0x[0-9a-f]{64}$/i.test(viewInput);
   const addRow = (
-    <div className="row add-row">
-      <input
-        aria-label="Sui address to view as"
-        placeholder="0x… Sui address"
-        value={viewInput}
-        onChange={(e) => setViewInput(e.target.value)}
-      />
-      <button
-        className="btn btn-ink"
-        disabled={!/^0x[0-9a-f]{64}$/i.test(viewInput)}
-        onClick={() => {
-          const a = viewInput.toLowerCase();
-          selectView(a, [...new Set([...viewAddresses, a])].slice(0, 4));
-          setViewInput('');
-        }}
-      >
-        View as
+    <form
+      className="addr-row"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (!isValid) return;
+        const a = viewInput.toLowerCase();
+        selectView(a, [...new Set([...viewAddresses, a])].slice(0, 4));
+        setViewInput('');
+      }}
+    >
+      <input aria-label="Sui address to view as" placeholder="0x… any Sui address" value={viewInput} onChange={(e) => setViewInput(e.target.value)} />
+      <button className="btn btn-blue btn-sm" disabled={!isValid}>
+        View
       </button>
-    </div>
+    </form>
   );
 
   const viewAs = !account && (
-    <section className="card viewas" aria-label="View as address">
-      <div className="viewas-head">
-        <span className="viewas-icon">
-          <Icon name="eye" size={18} />
-        </span>
-        <div>
-          <h2 className="viewas-title">{crew ? 'Switch member' : 'Preview without a wallet'}</h2>
-          {viewingAs ? (
-            <p className="viewing">
-              Viewing as <b className="num">{short(viewingAs)}</b> <span className="ro">read-only, not your wallet</span>
-            </p>
-          ) : (
-            <p className="muted small">Paste a public Sui address that trades on Predict to look around read-only. Nothing gets signed.</p>
-          )}
-        </div>
-      </div>
+    <div className="viewas">
+      <p className="viewas-title">
+        <Icon name="eye" size={15} /> {viewingAs ? 'Viewing read-only' : 'No wallet? Look around read-only'}
+      </p>
       {viewAddresses.length > 0 && (
         <div className="chips" role="group" aria-label="Switch member">
           {viewAddresses.map((a) => (
-            <button key={a} className="ghost-btn chip" aria-pressed={a === viewingAs} onClick={() => selectView(a)}>
-              <Avatar address={a} size={26} />
+            <button key={a} className="chip" aria-pressed={a === viewingAs} onClick={() => selectView(a)}>
+              <Avatar address={a} size={22} />
               <span className="num">{short(a)}</span>
             </button>
           ))}
         </div>
       )}
-      {viewAddresses.length < 4 &&
-        (crew && viewAddresses.length > 0 ? (
-          <details className="add-more">
-            <summary>
-              <Icon name="plus" size={16} /> Add another address
-            </summary>
-            {addRow}
-          </details>
-        ) : (
-          addRow
-        ))}
-    </section>
+      {viewAddresses.length < 4 && addRow}
+    </div>
   );
 
   const setupNotice = status?.setup.length ? (
     <section className="setup" aria-label="Setup required">
-      <span className="setup-icon">
-        <Icon name="key" size={18} />
-      </span>
-      <div>
-        <b>Setup required</b>
-        <p>
-          {status.setup.map((x) => (
-            <code key={x}>{x.replace('Setup required: ', '')}</code>
-          ))}
-        </p>
-        <p className="setup-note">Crew memory and the playbook go to Walrus Memory once these keys exist.</p>
-      </div>
+      <Icon name="key" size={18} />
+      <b>Setup required</b>
+      {status.setup.map((x) => (
+        <code key={x}>{x.replace('Setup required: ', '')}</code>
+      ))}
+      <span>Crew memory goes to Walrus once these keys exist.</span>
     </section>
   ) : null;
 
   const tapReceipt = tapResult ? (
-    <section className="toast receipt receipt-ok" role="status">
-      <span className="burst" aria-hidden="true" />
-      <Sticker name="handshake" className="receipt-sticker" />
-      <div className="receipt-head">
-        <span className="receipt-badge">
-          <Icon name="check" size={22} />
+    <section className="toast toast-ok" role="status">
+      <img src="/art/v2/nakama-mascot-cheer.webp" alt="" width={64} height={64} />
+      <div>
+        <b>Dry-run success · no order sent</b>
+        <span>
+          <span className="num">{short(tapResult.address)}</span> would pay <b className="num">{tapResult.totalDebit.toFixed(2)} USDC</b> (fee{' '}
+          <span className="num">{tapResult.orderFee.toFixed(2)}</span>)
         </span>
-        <div>
-          <b>Dry-run success</b>
-          <span>
-            for <span className="num">{short(tapResult.address)}</span> · No order submitted.
-          </span>
-        </div>
       </div>
-      <dl className="receipt-rows">
-        <div>
-          <dt>Total debit</dt>
-          <dd className="num">{tapResult.totalDebit.toFixed(2)} USDC</dd>
-        </div>
-        <div>
-          <dt>Includes fee</dt>
-          <dd className="num">{tapResult.orderFee.toFixed(2)} USDC</dd>
-        </div>
-        <div>
-          <dt>Order</dt>
-          <dd>Not submitted (dry run)</dd>
-        </div>
-      </dl>
     </section>
   ) : message ? (
-    <section
-      className={`toast ${/^(Predict refused|Dry-run (?!success))/.test(message) ? 'toast-bad' : /^(Order queued|Invite)/.test(message) ? 'toast-ok' : 'toast-info'}`}
-      role="status"
-    >
-      {/^(Predict refused|Dry-run (?!success))/.test(message) ? (
-        <Sticker name="skull" className="toast-sticker" />
-      ) : (
-        <Icon name={/^(Order queued|Invite)/.test(message) ? 'check' : 'alert'} size={18} />
-      )}
+    <section className={`toast ${/^(Predict refused|Dry-run (?!success))/.test(message) ? 'toast-bad' : /^(Order queued|Deposited)/.test(message) ? 'toast-ok' : 'toast-info'}`} role="status">
+      <img src={/^(Predict refused|Dry-run (?!success))/.test(message) ? '/art/v2/nakama-mascot-sad.webp' : '/art/v2/nakama-mascot.webp'} alt="" width={56} height={56} />
       <span>{message}</span>
     </section>
   ) : null;
 
+  const next1 = openMarkets.filter((m) => m.cadence === 1).sort((a, b) => a.expiryMs - b.expiryMs)[0];
+  const next5 = openMarkets.filter((m) => m.cadence === 5).sort((a, b) => a.expiryMs - b.expiryMs)[0];
+  const forward = markets.find((m) => m.forward != null)?.forward ?? null;
+  const clock = (ms: number) => {
+    const s = secondsLeft(ms);
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  };
+  const pickCadence = (c: 1 | 5) => {
+    const m = c === 1 ? next1 : next5;
+    if (m) setMarketId(m.id);
+    document.getElementById(crew ? 'make-a-call' : 'start')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+  const settledCalls = crew?.calls.filter((c) => c.status === 'settled') ?? [];
+  const crewWins = settledCalls.filter((c) => c.orders.some((o) => o.hit)).length;
+  const bestStreak = board.reduce((n, m) => Math.max(n, m.streak), 0);
+  const me = board.find((m) => m.address === owner);
+
+  const Tile = ({ icon, value, label, tone }: { icon: string; value: string; label: string; tone: string }) => (
+    <div className={`tile tile-${tone}`}>
+      <img src={`/art/v2/nakama-icon-${icon}.webp`} alt="" width={56} height={56} />
+      <span>
+        <b>{value}</b>
+        <small>{label}</small>
+      </span>
+    </div>
+  );
+
   return (
     <div className="shell">
+      <div className="sky" aria-hidden="true">
+        <span className="cloud c1" />
+        <span className="cloud c2" />
+        <span className="cloud c3" />
+        <img className="float-gem g1" src="/art/v2/nakama-icon-gem.webp" alt="" />
+        <img className="float-gem g2" src="/art/v2/nakama-icon-coin.webp" alt="" />
+      </div>
       {account && wallet?.name === DEMO_WALLET_NAME && (
-        <div className="demo-signer-badge" role="status">Demo signer · server-held demo key · {String(status?.rpc ?? '').includes('LOCAL FORK') ? 'LOCAL FORK of Sui mainnet · no real funds' : 'real mainnet funds'}</div>
+        <div className="demo-signer-badge" role="status">
+          Demo signer · server-held demo key · {String(status?.rpc ?? '').includes('LOCAL FORK') ? 'LOCAL FORK of Sui mainnet · no real funds' : 'real mainnet funds'}
+        </div>
       )}
-      <header className="topbar">
-        <a className="brand" href="/" aria-label="Nakama home">
-          <img src="/art/nakama-mark.webp" alt="" width={40} height={40} />
-          <span className="brand-name">Nakama</span>
-          <span className="brand-jp" lang="ja">
-            仲間
-          </span>
+
+      <header className="top">
+        <p className="tagline">
+          Call it together
+          <br />
+          <span>Win together</span>
+        </p>
+        <a className="logo" href="/" aria-label="Nakama home">
+          <img src="/art/v2/nakama-logo.webp" alt="Nakama" width={1200} height={800} />
         </a>
-        <div className="strip" aria-label="Connection status">
-          <span className={`pill ${status?.rpc?.startsWith('dev') ? 'pill-warn' : ''}`}>
+        <div className="top-right">
+          <span className={`pill ${writesOn ? 'pill-live' : ''}`}>
             <i />
-            {status?.rpc ?? 'checking chain'}
+            {writesOn ? (forkMode ? 'Fork writes' : 'Real USDC') : 'Dry-run'}
           </span>
           <span className="pill">
             <i />
-            {status?.memoryNetwork ?? 'Walrus mainnet'}
+            {status?.rpc ?? '…'} · Walrus
           </span>
-          <span className={`pill ${writesOn ? 'pill-live' : 'pill-dry'}`}>
-            <i />
-            {writesOn ? (forkMode ? 'LOCAL FORK WRITES' : 'REAL USDC') : 'DRY-RUN'}
-          </span>
-        </div>
-        <div className="connect">
-          <ConnectButton />
         </div>
       </header>
 
       {loadingCrew ? (
         <main className="state-page" aria-busy="true">
-          <img src="/art/nakama-loading.webp" alt="" width={140} height={140} className="bob" />
+          <img src="/art/v2/nakama-mascot.webp" alt="" width={160} height={160} className="bob" />
           <h1>Finding your crew…</h1>
-          <p className="muted">Loading the crew and live Predict markets.</p>
+          <p>Loading the crew and live Predict markets.</p>
         </main>
       ) : crewFailed ? (
         <main className="state-page">
-          <img src="/art/nakama-empty-crew.webp" alt="" width={160} height={160} />
+          <img src="/art/v2/nakama-mascot-sad.webp" alt="" width={160} height={160} />
           <h1>Couldn't open this crew</h1>
           <p className="state-error" role="alert">
             {message}
           </p>
           <button
-            className="btn btn-primary"
+            className="btn btn-go"
             onClick={() => {
               localStorage.removeItem('nakama-crew');
               location.href = '/';
@@ -595,417 +557,295 @@ export function App() {
             Start a new crew
           </button>
         </main>
-      ) : !crew ? (
-        <main className="landing" id="top">
-          <section className="hero">
-            <div className="hero-copy">
-              <span className="kicker">
-                <Icon name="spark" size={15} /> Live BTC calls · DeepBook Predict on Sui
-              </span>
-              <h1>
-                Call it together.
-                <br />
-                <span>Win together.</span>
-              </h1>
-              <p className="lede">
-                Someone in your crew spots a move and posts a 1- or 5-minute BTC call. Everyone gets one tap to join
-                before it closes, and each friend signs their own order.
-              </p>
-              <section className="card start" aria-label="Start your crew">
-                <div className="start-head">
-                  <div>
-                    <h2>Start your crew</h2>
-                    <p className="muted small">Pick a name, then share the invite link with your friends.</p>
-                  </div>
-                  <span className="art-pile" aria-hidden="true">
-                    {[1, 2, 3, 4].map((n) => (
-                      <img key={n} src={`/art/nakama-avatar-${n}.webp`} alt="" width={44} height={44} />
-                    ))}
-                    <i>+</i>
-                  </span>
-                </div>
-                <div className="row">
-                  <input placeholder="Crew name" aria-label="Crew name" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} />
-                  <button className="btn btn-primary" disabled={busy || !name.trim()} onClick={create}>
-                    Create crew
-                  </button>
-                </div>
-                {!account && (
-                  <p className="hint">
-                    {viewingAs
-                      ? 'No wallet connected, so this will be a read-only preview crew.'
-                      : 'No wallet connected: connect one, or preview as a public address below.'}
-                  </p>
-                )}
-              </section>
-              {tapReceipt}
-              {viewAs}
-            </div>
-            <figure className="hero-art" onPointerMove={parallax} onPointerLeave={parallaxReset}>
-              <div className="hero-frame">
-              <img
-                className="hero-img"
-                src="/art/nakama-hero.webp"
-                alt="Four friends on a rooftop at night point together at a glowing arrow in the sky"
-                width={1536}
-                height={1024}
-              />
-              {/* Optional loop over the poster; if the file is missing or motion is reduced, the poster image stays. */}
-              {heroVideo !== 'failed' && (
-                <video
-                  className={`hero-video ${heroVideo === 'ready' ? 'ready' : ''}`}
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  preload="metadata"
-                  poster="/art/nakama-hero.webp"
-                  src="/art/nakama-hero-loop.mp4"
-                  aria-hidden="true"
-                  onError={() => setHeroVideo('failed')}
-                  onLoadedData={() => setHeroVideo('ready')}
-                />
-              )}
-                <span className="halftone" aria-hidden="true" />
-              </div>
-              <img className="sticker sticker-a" src="/art/nakama-object-1.webp" alt="" width={150} height={150} />
-              <img className="sticker sticker-b" src="/art/nakama-object-2.webp" alt="" width={130} height={130} />
-              <Sticker name="rocket" className="sticker sticker-c" />
-              <Sticker name="clock" className="sticker sticker-d" />
-              <figcaption>
-                <span className="bubble bubble-call">
-                  <img className="bubble-face" src="/art/nakama-avatar-2.webp" alt="" width={28} height={28} />
-                  <Icon name="up" size={16} /> “BTC above the strike, 5 min. Who's in?”
-                </span>
-                <span className="bubble bubble-reply">
-                  One tap each. Everyone signs their own.
-                  <img className="bubble-face" src="/art/nakama-avatar-4.webp" alt="" width={28} height={28} />
-                </span>
-              </figcaption>
-            </figure>
-          </section>
-          {setupNotice}
-
-          <header className="steps-head">
-            <p className="eyebrow">How it works</p>
-            <h2>One call, one tap each, one scoreboard</h2>
-          </header>
-          <section className="steps" aria-label="How a crew call works">
-            {[
-              ['nakama-call-hype', '1', 'Someone calls it', 'Pick a live BTC market, above or below a strike, and say why. Predict odds show under the strike before you post.', 'rocket'],
-              ['nakama-tap-in', '2', 'The crew taps in', 'Each friend gets one tap before the market closes. Every order is quoted and simulated first.', 'clock'],
-              ['nakama-phone-crew', '3', 'Everyone signs their own', 'No pooled funds. Each order is signed in that member’s own wallet, from their own Predict account.', 'handshake'],
-              ['nakama-film-bg-1', '4', 'The board keeps score', 'Each member’s real Predict record from Sui mainnet: wins, P&L in USDC and streaks, with Suiscan links.', 'fire'],
-            ].map(([art, n, title, body, stk]) => (
-              <article className="step card" key={n} style={{ ['--i' as string]: Number(n) - 1 }}>
-                <div className="step-art">
-                  <img src={`/art/${art}.webp`} alt="" width={1536} height={1024} loading="lazy" />
-                  <Sticker name={stk} className="step-sticker" />
-                </div>
-                <div>
-                  <span className="step-n">{n}</span>
-                  <h3>{title}</h3>
-                  <p className="muted">{body}</p>
-                </div>
-              </article>
-            ))}
-          </section>
-          <section className="cta-band" aria-label="Bring your crew">
-            <img src="/art/nakama-film-bg-2.webp" alt="" width={1536} height={1024} loading="lazy" />
-            <div>
-              <h2>Calls are better with your nakama</h2>
-              <p>Name a crew, share one link, and make the next BTC call together.</p>
-              <a className="btn btn-sun" href="#top">
-                Start your crew <Icon name="up" size={16} />
-              </a>
-            </div>
-          </section>
-        </main>
       ) : (
-        <main className="crew-layout">
-          <aside className="rail">
-            <section className="card crew-head">
-              <div className="crew-banner">
-                <img src="/art/nakama-banner.webp" alt="" width={1536} height={512} />
-                <span className="halftone" aria-hidden="true" />
-              </div>
-              <img className="crew-emblem" src="/art/nakama-crew-emblem.webp" alt="" width={84} height={84} />
-              <div className="crew-head-body">
-                <p className="eyebrow">Your crew · BTC/USD</p>
-                <h1>{crew.name}</h1>
-                <div className="crew-meta">
-                  {crew.readOnlyDemo && <span className="badge-preview">preview crew</span>}
-                  <span>
-                    {crew.members.length} {crew.members.length === 1 ? 'member' : 'members'}
-                  </span>
-                </div>
-                {crew.members.length > 0 && (
-                  <div className="facepile" aria-label="Members">
-                    {crew.members.map((m) => (
-                      <span key={m} title={m}>
-                        <Avatar address={m} size={36} ring />
-                      </span>
-                    ))}
-                  </div>
-                )}
-                <div className="crew-actions">
-                  <button
-                    className="ghost-btn btn-soft"
-                    onClick={() => {
-                      void navigator.clipboard.writeText(`${location.origin}/?crew=${crew.id}`);
-                      setCopied(true);
-                      setTimeout(() => setCopied(false), 2000);
-                    }}
-                  >
-                    <Icon name={copied ? 'check' : 'copy'} size={16} /> {copied ? 'Link copied' : 'Copy invite'}
-                  </button>
-                  {!joined && (
-                    <button className="btn btn-primary" disabled={!owner || busy} onClick={join}>
-                      <Icon name="plus" size={16} />
-                      {account ? 'Join with wallet' : viewingAs ? 'Join preview crew' : 'Enter an address to join'}
-                    </button>
-                  )}
-                  {joined && (
-                    <span className="joined-tag">
-                      <Sticker name="handshake" className="inline-sticker" /> {account ? "You're in this crew" : 'In the crew'}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </section>
-            {account && <FundCard owner={account.address.toLowerCase()} writesOn={writesOn} fork={forkMode} kit={kit} />}
-            {viewAs}
-            {setupNotice}
-          </aside>
+        <main className="lobby">
+          <nav className="side card" aria-label="Sections">
+            {[
+              ['crew', crew ? 'Crew room' : 'Lobby', '#top'],
+              ['calls', 'Make a call', crew ? '#make-a-call' : '#start'],
+              ['board', 'Scoreboard', crew ? '#board' : '#how'],
+              ['how', 'How it works', '#how'],
+            ].map(([id, label, href], i) => (
+              <a key={id} href={href} className={i === 0 ? 'on' : ''}>
+                <img src={`/art/v2/nakama-icon-${['megaphone', 'rocket-up', 'trophy', 'shield'][i]}.webp`} alt="" width={26} height={26} />
+                {label}
+              </a>
+            ))}
+            <div className="side-promo">
+              <p>
+                Call it.
+                <br />
+                <span>Tap in.</span>
+                <br />
+                Win together.
+              </p>
+              <small>One tap each · everyone signs their own</small>
+              <img src="/art/v2/nakama-crew-2.webp" alt="" width={320} height={320} />
+            </div>
+          </nav>
 
-          <section className="thread" aria-label="Crew calls">
-            {active ? (
-              <article className={`card call ${outOfBand ? 'call-closed' : ''}`} key={active.id}>
-                <header className="call-head">
-                  <span className="halftone" aria-hidden="true" />
-                  <Avatar address={active.caller} size={44} />
-                  <div className="call-who">
-                    <b className="num">{short(active.caller)}</b>
-                    {active.caller === owner && <span className="you">you</span>}
-                    <span className="muted small">called it</span>
-                  </div>
-                  <span className="live-pill">
-                    <i /> Live · {active.setup.cadence} min
-                  </span>
-                </header>
-                <div className="call-body">
-                  <div className="call-main">
-                    <p className="call-kicker">BTC/USD at market close</p>
-                    <h2 className={`call-dir dir-${active.setup.direction}`}>
-                      <span className="dir-badge">
-                        <Icon name={active.setup.direction} size={22} />
-                        <Sticker name={active.setup.direction === 'up' ? 'rocket' : 'target'} className="dir-sticker" />
-                      </span>
-                      <span>
-                        {active.setup.direction === 'range'
-                          ? `BTC between ${usd(active.strike)}–${usd(active.upper ?? active.strike)}`
-                          : `BTC ${dirWord(active.setup.direction)} ${usd(active.strike)}`}
-                      </span>
-                    </h2>
-                    {active.why && <p className="why">“{active.why}”</p>}
-                  </div>
-                  <div className="ring-wrap">
-                    <Ring seconds={secondsLeft(active.expiryMs)} total={active.setup.cadence * 60} />
-                    <Sticker name="clock" className={`ring-sticker ${secondsLeft(active.expiryMs) <= 30 ? 'urgent' : ''}`} />
+          {/* The hero card: the live call when there is one, else the next thing to do. */}
+          <section className="hero card" id="top" aria-label={crew ? 'Live call' : 'Start your crew'}>
+            <img className="hero-mascot" src="/art/v2/nakama-mascot.webp" alt="" width={320} height={320} />
+            {!crew ? (
+              <div className="hero-body" id="start">
+                <span className="tag">Next call</span>
+                <p className="eyebrow">Your crew is waiting</p>
+                <h1>Call BTC with your nakama</h1>
+                <p className="sub">Live 1 and 5 minute markets · real Predict orders · Walrus memory</p>
+                <div className="hero-panel">
+                  <label className="field">
+                    <span>Crew name</span>
+                    <input placeholder="e.g. Night Owls" aria-label="Crew name" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} />
+                  </label>
+                  <div className="panel-stat">
+                    <img src="/art/v2/nakama-icon-stopwatch.webp" alt="" width={40} height={40} />
+                    <span>
+                      <small>Next 5-min close</small>
+                      <b className="num">{next5 ? clock(next5.expiryMs) : '—'}</b>
+                    </span>
                   </div>
                 </div>
-                {status?.memoryConfigured && (
-                  <p className="muted small">
-                    Crew is {active.crewRecord?.wins ?? 0}/{active.crewRecord?.calls ?? 0} on this setup{' '}
-                    {active.crewRecord?.cold && <b className="cold">COLD SETUP</b>}
-                  </p>
+                <button className="btn btn-go btn-big" disabled={busy || !name.trim()} onClick={create}>
+                  Start a crew <Icon name="up" size={20} />
+                </button>
+                {!account && (
+                  <p className="hint">{viewingAs ? 'No wallet: this becomes a read-only preview crew.' : 'Connect a wallet, or view as a public address on the right.'}</p>
                 )}
-                <Recalled ids={active.recalled} />
-                {odds?.probability != null ? (
-                  <div className={`odds ${outOfBand ? 'odds-out' : 'odds-in'}`} aria-live="polite">
-                    <div className="odds-top">
-                      <span className="odds-label">Predict odds now</span>
-                      <b className="odds-value num">{pct(odds.probability)}%</b>
-                    </div>
-                    <div className="odds-bar" aria-hidden="true">
-                      <span className="odds-band" style={{ left: `${odds.band.min * 100}%`, width: `${(odds.band.max - odds.band.min) * 100}%` }} />
-                      <span className="odds-dot" style={{ left: `${Math.min(100, Math.max(0, odds.probability * 100))}%` }} />
-                    </div>
-                    <div className="odds-scale" aria-hidden="true">
-                      <span>0%</span>
-                      <span style={{ left: `${odds.band.min * 100}%` }}>{odds.band.min * 100}%</span>
-                      <span style={{ left: `${odds.band.max * 100}%` }}>{odds.band.max * 100}%</span>
-                      <span>100%</span>
-                    </div>
-                    <p className="odds-note">
-                      {pct(odds.probability)}% Predict odds now
-                      {outOfBand
-                        ? ` · outside the ${odds.band.min * 100}–${odds.band.max * 100}% entry band, so Predict won't take new taps on this strike`
-                        : ` · inside the ${odds.band.min * 100}–${odds.band.max * 100}% entry band`}
-                    </p>
+              </div>
+            ) : active ? (
+              <div className={`hero-body call ${outOfBand ? 'call-closed' : ''}`} key={active.id}>
+                <span className="tag tag-live">
+                  <i /> Live call · {active.setup.cadence} min
+                </span>
+                <p className="eyebrow">
+                  <Avatar address={active.caller} size={22} /> <span className="num">{short(active.caller)}</span> {active.caller === owner ? '(you)' : ''} called it
+                </p>
+                <h1 className={`dir-${active.setup.direction}`}>
+                  BTC {active.setup.direction === 'range' ? `${usd(active.strike)}–${usd(active.upper ?? active.strike)}` : `${dirWord(active.setup.direction)} ${usd(active.strike)}`}
+                </h1>
+                {active.why && <p className="sub why">“{active.why}”</p>}
+                <div className="hero-panel">
+                  <div className="panel-stat">
+                    <Ring seconds={secondsLeft(active.expiryMs)} total={active.setup.cadence * 60} />
                   </div>
-                ) : !oddsError && active.setup.direction !== 'range' ? (
-                  <div className="odds-loading" aria-busy="true">
-                    <span className="skeleton" /> Reading Predict odds…
-                  </div>
-                ) : null}
-                {oddsError && <p className="state-error small">Live odds unavailable: {oddsError}</p>}
+                  {odds?.probability != null ? (
+                    <div className={`odds ${outOfBand ? 'odds-out' : 'odds-in'}`} aria-live="polite">
+                      <span className="odds-top">
+                        <small>Predict odds now</small>
+                        <b className="num">{pct(odds.probability)}%</b>
+                      </span>
+                      <span className="odds-bar" aria-hidden="true">
+                        <span className="odds-band" style={{ left: `${odds.band.min * 100}%`, width: `${(odds.band.max - odds.band.min) * 100}%` }} />
+                        <span className="odds-dot" style={{ left: `${Math.min(100, Math.max(0, odds.probability * 100))}%` }} />
+                      </span>
+                      <small>{outOfBand ? `Outside the ${odds.band.min * 100}–${odds.band.max * 100}% entry band: Predict won't take new taps` : `Inside the ${odds.band.min * 100}–${odds.band.max * 100}% entry band`}</small>
+                    </div>
+                  ) : oddsError ? (
+                    <small className="state-error">Live odds unavailable: {oddsError}</small>
+                  ) : (
+                    <small className="muted">Reading Predict odds…</small>
+                  )}
+                </div>
                 <div className="joiners">
-                  <span className="joiners-label">In on this call</span>
                   {active.orders.length ? (
                     active.orders.map((o) => (
                       <span key={o.digest} className="joiner">
-                        <Avatar address={o.address} size={22} />
+                        <Avatar address={o.address} size={26} />
                         <span className="num">{short(o.address)}</span> · {o.size} USDC · {o.status}
                       </span>
                     ))
                   ) : (
-                    <span className="muted small">Nobody in yet</span>
+                    <span className="muted">Nobody in yet. Be first.</span>
                   )}
                 </div>
                 {joined ? (
-                  <button className={`tap ${outOfBand ? 'tap-closed' : ''}`} disabled={busy || mineIn || outOfBand} onClick={oneTap}>
-                    {busy ? (
-                      <>
-                        <span className="spinner" /> Checking Predict…
-                      </>
-                    ) : mineIn ? (
-                      <>
-                        <Sticker name="handshake" className="inline-sticker" /> You're in
-                      </>
-                    ) : outOfBand ? (
-                      <>
-                        <img className="tap-door" src="/art/nakama-entry-closed.webp" alt="" width={56} height={56} /> Entry closed
-                      </>
-                    ) : (
-                      <>
-                        {liveMode ? 'Tap in' : 'Dry-run tap in'} · {size} USDC
-                        {boosted && <span className="boost">×1.5 streak</span>}
-                      </>
-                    )}
+                  <button className={`btn btn-go btn-big ${outOfBand ? 'btn-off' : ''}`} disabled={busy || mineIn || outOfBand} onClick={oneTap}>
+                    {busy ? 'Checking Predict…' : mineIn ? "You're in" : outOfBand ? 'Entry closed' : `${liveMode ? 'Tap in' : 'Dry-run tap in'} · ${size} USDC`}
+                    {boosted && !mineIn && <span className="boost">×1.5 streak</span>}
                   </button>
                 ) : (
-                  <p className="hint">Join the crew to tap in on this call.</p>
+                  <p className="hint">Join the crew (right) to tap in on this call.</p>
                 )}
-                <p className="muted small">Minimum 2 USDC. Predict takes a 0.02 USDC fee and rounds to whole lots.</p>
-                {status?.memoryConfigured && suggestion?.member && (
-                  <p className="muted small">
-                    Your record from Walrus Memory {suggestion.member.record.wins}/{suggestion.member.record.calls} · {suggestion.member.streak} win
-                    streak
-                  </p>
-                )}
-              </article>
+                <Recalled ids={active.recalled} />
+              </div>
             ) : (
-              <section className="card call-empty">
-                <div className="empty-art">
-                  <img src="/art/nakama-empty-crew.webp" alt="" width={150} height={150} />
-                  <Sticker name="moon" className="empty-sticker" />
-                </div>
-                <div>
-                  <h2>No live call</h2>
-                  <p className="muted">Post one below. Your crew gets one tap to join before the market closes.</p>
-                  <a className="empty-cta" href="#make-a-call">
-                    Make a call <Icon name="down" size={16} />
-                  </a>
-                </div>
-              </section>
+              <div className="hero-body">
+                <span className="tag">No live call</span>
+                <p className="eyebrow">{crew.name} is ready</p>
+                <h1>Post the first call</h1>
+                <p className="sub">Pick a live BTC market, above or below a strike, and say why. The crew gets one tap each before it closes.</p>
+                <a className="btn btn-go btn-big" href="#make-a-call">
+                  Post a call <Icon name="up" size={20} />
+                </a>
+              </div>
             )}
+          </section>
 
-            {tapReceipt}
+          <div className="modes">
+            <button className="mode mode-quick card" onClick={() => pickCadence(1)}>
+              <img src="/art/v2/nakama-card-quick.webp" alt="" width={200} height={200} />
+              <span>
+                <small>Quick call</small>
+                <b>1-minute BTC</b>
+                <em>Fast and loud. One round.</em>
+                <span className="mode-chip num">{next1 ? `closes ${clock(next1.expiryMs)}` : 'next opens soon'}</span>
+              </span>
+              <i aria-hidden="true">→</i>
+            </button>
+            <button className="mode mode-battle card" onClick={() => pickCadence(5)}>
+              <img src="/art/v2/nakama-card-battle.webp" alt="" width={200} height={200} />
+              <span>
+                <small>Crew call</small>
+                <b>5-minute BTC</b>
+                <em>Time to rally the whole crew.</em>
+                <span className="mode-chip num">{next5 ? `closes ${clock(next5.expiryMs)}` : 'next opens soon'}</span>
+              </span>
+              <i aria-hidden="true">→</i>
+            </button>
+          </div>
 
-            {latest?.status === 'settled' && (
-              <section className="card reveal">
-                <header className="reveal-head">
-                  <h2>Settled</h2>
-                  <p className="big">
-                    {latest.orders.filter((o) => o.hit).length} won · {latest.orders.length} joined
-                  </p>
-                </header>
-                {latest.orders.map((o) => (
-                  <div key={o.digest} className={`result ${o.hit ? 'win' : 'loss'}`}>
-                    <Avatar address={o.address} size={32} />
-                    <span className="num">{short(o.address)}</span>
-                    <b className="result-tag">
-                      {o.hit ? <Sticker name="fire" className="inline-sticker" /> : <Sticker name="skull" className="inline-sticker" />}
-                      {o.hit ? 'WIN' : 'LOSS'}
-                    </b>
-                    <span className="num">{o.pnl == null ? 'pending' : `${signed(o.pnl)} USDC`}</span>
-                    <span className="links">
-                      <a className="link-pill" href={`https://suiscan.xyz/mainnet/tx/${o.digest}`} target="_blank" rel="noreferrer">
-                        order <Icon name="link" size={13} />
-                      </a>
-                      {o.fillDigest && (
-                        <a className="link-pill" href={`https://suiscan.xyz/mainnet/tx/${o.fillDigest}`} target="_blank" rel="noreferrer">
-                          fill <Icon name="link" size={13} />
-                        </a>
-                      )}
-                      {o.payoutDigest && (
-                        <a className="link-pill" href={`https://suiscan.xyz/mainnet/tx/${o.payoutDigest}`} target="_blank" rel="noreferrer">
-                          payout <Icon name="link" size={13} />
-                        </a>
-                      )}
-                    </span>
-                  </div>
-                ))}
-                <Recalled ids={latest.memoryBlobId ? [latest.memoryBlobId] : []} />
-              </section>
+          <aside className="player card" aria-label="Your player">
+            {owner ? (
+              <span className="player-face">
+                <Avatar address={owner} size={84} />
+              </span>
+            ) : (
+              <img className="player-face-img" src="/art/v2/nakama-avatar-1.webp" alt="" width={84} height={84} />
             )}
+            <p className="eyebrow">Your nakama</p>
+            <b className="player-name num">{owner ? short(owner) : 'Connect to play'}</b>
+            <div className="badges">
+              <span>{me ? `${me.wins}/${me.calls} won` : 'Unranked'}</span>
+              {me && me.streak > 0 ? <span className="hot">🔥 {me.streak}</span> : <span>0 streak</span>}
+            </div>
+            <div className="player-stats">
+              <span>
+                <b className="num">{forward != null ? usd(forward) : '—'}</b>
+                <small>BTC now</small>
+              </span>
+              <span>
+                <b className="num">{crew ? crew.members.length : '—'}</b>
+                <small>Crew</small>
+              </span>
+            </div>
+            <div className="connect">
+              <ConnectButton />
+            </div>
+            {crew && (
+              <div className="player-actions">
+                {!joined ? (
+                  <button className="btn btn-blue" disabled={!owner || busy} onClick={join}>
+                    <Icon name="plus" size={16} /> {account ? 'Join this crew' : viewingAs ? 'Join preview crew' : 'Add an address to join'}
+                  </button>
+                ) : (
+                  <span className="joined">✓ {account ? "You're in this crew" : 'In the crew'}</span>
+                )}
+                <button
+                  className="btn btn-ghost"
+                  onClick={() => {
+                    void navigator.clipboard.writeText(`${location.origin}/?crew=${crew.id}`);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  }}
+                >
+                  <Icon name={copied ? 'check' : 'copy'} size={15} /> {copied ? 'Invite copied' : 'Copy invite link'}
+                </button>
+              </div>
+            )}
+            {viewAs}
+          </aside>
 
-            <section className="card composer" id="make-a-call" aria-label="Make a call">
-              <header className="composer-head">
-                {owner ? <Avatar address={owner} size={40} /> : <span className="avatar avatar-empty" aria-hidden="true" />}
-                <div>
-                  <h2>Make a call</h2>
-                  <p className="muted small">Your crew gets one tap to join before the market closes.</p>
+          <section className="record card" aria-label={crew ? "Crew record" : 'Live now'}>
+            <p className="record-title">
+              <span>{crew ? `${crew.name} · crew record` : "Today's markets"}</span>
+            </p>
+            <div className="tiles">
+              {crew ? (
+                <>
+                  <Tile icon="trophy" tone="green" value={String(crewWins)} label="Calls won" />
+                  <Tile icon="fire" tone="sun" value={String(bestStreak)} label="Best streak" />
+                  <Tile icon="gem" tone="grape" value={settledCalls.length ? `${Math.round((crewWins / settledCalls.length) * 100)}%` : '—'} label="Hit rate" />
+                  <Tile icon="megaphone" tone="sky" value={String(crew.calls.length)} label="Calls posted" />
+                </>
+              ) : (
+                <>
+                  <Tile icon="coin" tone="green" value={forward != null ? usd(forward) : '—'} label="BTC forward" />
+                  <Tile icon="stopwatch" tone="sun" value={next1 ? clock(next1.expiryMs) : '—'} label="Next 1-min close" />
+                  <Tile icon="shield" tone="grape" value="15–50%" label="Predict entry band" />
+                  <Tile icon="gem" tone="sky" value="2 USDC" label="Min tap" />
+                </>
+              )}
+            </div>
+          </section>
+        </main>
+      )}
+
+      <div className="below">
+        {tapReceipt}
+        {setupNotice}
+
+        {crew && latest?.status === 'settled' && (
+          <section className={`card reveal ${latest.orders.some((o) => o.hit) ? 'reveal-win' : 'reveal-loss'}`}>
+            <img src={latest.orders.some((o) => o.hit) ? '/art/v2/nakama-mascot-cheer.webp' : '/art/v2/nakama-mascot-sad.webp'} alt="" width={120} height={120} />
+            <div>
+              <p className="eyebrow">Last call settled</p>
+              <h2>
+                {latest.orders.filter((o) => o.hit).length} won · {latest.orders.length} joined
+              </h2>
+              {latest.orders.map((o) => (
+                <div key={o.digest} className={`result ${o.hit ? 'win' : 'loss'}`}>
+                  <Avatar address={o.address} size={28} />
+                  <span className="num">{short(o.address)}</span>
+                  <b>{o.hit ? 'WIN' : 'LOSS'}</b>
+                  <span className="num">{o.pnl == null ? 'pending' : `${signed(o.pnl)} USDC`}</span>
+                  <span className="links">
+                    <a href={`https://suiscan.xyz/mainnet/tx/${o.digest}`} target="_blank" rel="noreferrer">order</a>
+                    {o.fillDigest && <a href={`https://suiscan.xyz/mainnet/tx/${o.fillDigest}`} target="_blank" rel="noreferrer">fill</a>}
+                    {o.payoutDigest && <a href={`https://suiscan.xyz/mainnet/tx/${o.payoutDigest}`} target="_blank" rel="noreferrer">payout</a>}
+                  </span>
                 </div>
-              </header>
+              ))}
+              <Recalled ids={latest.memoryBlobId ? [latest.memoryBlobId] : []} />
+            </div>
+          </section>
+        )}
+
+        {crew && (
+          <section className="card host" id="make-a-call" aria-label="Make a call">
+            <div className="host-side">
+              <p className="eyebrow">Post a call</p>
+              <h2>Choose your call</h2>
+              <p>Pick a live BTC market and a side. Predict prices the strike live; only calls inside its 15–50% entry band can be joined.</p>
               {composer?.hot && (
                 <div className="hot">
-                  <b>Crew’s hot setup</b> {composer.hot.setup.cadence}m {composer.hot.setup.direction.toUpperCase()}, won {composer.hot.wins} of{' '}
-                  {composer.hot.calls}
+                  <b>Crew’s hot setup:</b> {composer.hot.setup.cadence}m {composer.hot.setup.direction.toUpperCase()}, won {composer.hot.wins} of {composer.hot.calls}
                   <Recalled ids={composer.hot.blobIds} />
                 </div>
               )}
-              <label className="field">
-                <span>Market</span>
-                <select value={marketId} onChange={(e) => setMarketId(e.target.value)}>
-                  {openMarkets.length === 0 && <option value="">No BTC market open right now</option>}
-                  {openMarkets.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      BTC {m.cadence} min · closes in {secondsLeft(m.expiryMs)}s
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <div className="field">
-                <span id="dir-label">Direction</span>
-                <div className="dirs" role="radiogroup" aria-labelledby="dir-label">
-                  {(['up', 'down', 'range'] as const).map((d) => (
-                    <button
-                      key={d}
-                      role="radio"
-                      aria-checked={direction === d}
-                      className={`dir dir-${d} ${direction === d ? 'on' : ''}`}
-                      onClick={() => setDirection(d)}
-                    >
-                      {d === 'up' ? 'Above ↑' : d === 'down' ? 'Below ↓' : 'Range ↔'}
-                    </button>
-                  ))}
-                </div>
+              <img src="/art/v2/nakama-card-host.webp" alt="" width={220} height={220} />
+            </div>
+            <div className="host-form">
+              <div className="seg" role="radiogroup" aria-label="Market">
+                {openMarkets.length === 0 && <span className="muted">No BTC market open right now</span>}
+                {[next1, next5].filter((m): m is Market => Boolean(m)).map((m) => (
+                  <button key={m.id} role="radio" aria-checked={m.id === marketId} className={m.id === marketId ? 'on' : ''} onClick={() => setMarketId(m.id)}>
+                    {m.cadence === 1 ? 'Quick · 1 min' : 'Crew · 5 min'} <span className="num">{clock(m.expiryMs)}</span>
+                  </button>
+                ))}
               </div>
-              <div className={`strike-row ${direction === 'range' ? 'two' : ''}`}>
+              <div className="dirs" role="radiogroup" aria-label="Direction">
+                {(['up', 'down', 'range'] as const).map((d) => (
+                  <button key={d} role="radio" aria-checked={direction === d} className={`dir dir-${d} ${direction === d ? 'on' : ''}`} onClick={() => setDirection(d)}>
+                    {d !== 'range' && <img src={`/art/v2/nakama-icon-${d === 'up' ? 'rocket-up' : 'anchor-down'}.webp`} alt="" width={30} height={30} />}
+                    {d === 'up' ? 'Above' : d === 'down' ? 'Below' : 'Range ↔'}
+                  </button>
+                ))}
+              </div>
+              <div className={`grid2 ${direction === 'range' ? '' : 'one'}`}>
                 <label className="field">
                   <span>Strike (USD)</span>
-                  <input
-                    className="num"
-                    type="number"
-                    step="1"
-                    inputMode="numeric"
-                    value={strike}
-                    placeholder={String(suggestedStrike ?? '')}
-                    onChange={(e) => setStrike(e.target.value)}
-                  />
-                  <Sticker name="target" className="field-sticker" />
+                  <input className="num" type="number" step="1" inputMode="numeric" value={strike} placeholder={String(suggestedStrike ?? '')} onChange={(e) => setStrike(e.target.value)} />
                 </label>
                 {direction === 'range' && (
                   <label className="field">
@@ -1014,161 +854,184 @@ export function App() {
                   </label>
                 )}
               </div>
-              {!strike && suggestedStrike != null && <p className="field-note">Suggested strike from the live forward: {usd(suggestedStrike)}</p>}
               {draftOdds?.probability != null ? (
-                <p className={`odds-hint ${draftOutOfBand ? 'odds-hint-out' : 'odds-hint-in'}`} aria-live="polite">
-                  <Icon name={draftOutOfBand ? 'alert' : 'check'} size={17} />
-                  <span>
-                    Predict odds at {usd(Number(strikeValue))}: <b className="num">{pct(draftOdds.probability)}%</b>
-                    {draftOutOfBand
-                      ? ` · outside the ${draftOdds.band.min * 100}–${draftOdds.band.max * 100}% entry band, so nobody could join. Move it nearer the money.`
-                      : ` · inside the entry band, the crew can join`}
-                  </span>
+                <p className={`odds-hint ${draftOutOfBand ? 'out' : 'in'}`} aria-live="polite">
+                  <Icon name={draftOutOfBand ? 'alert' : 'check'} size={16} /> Predict odds at {usd(Number(strikeValue))}: <b className="num">{pct(draftOdds.probability)}%</b>
+                  {draftOutOfBand ? ' · outside the entry band, nobody could join. Move it nearer the money.' : ' · inside the entry band, the crew can join'}
                 </p>
-              ) : direction !== 'range' && Number(strikeValue) > 0 ? (
-                <p className="odds-pending" aria-busy="true">
-                  <span className="skeleton" /> Reading Predict odds…
-                </p>
+              ) : !strike && suggestedStrike != null ? (
+                <p className="odds-hint">Suggested strike from the live forward: {usd(suggestedStrike)}</p>
               ) : null}
               <label className="field">
                 <span>Why</span>
                 <input maxLength={280} value={why} onChange={(e) => setWhy(e.target.value)} placeholder="What do you see?" />
               </label>
-              {status?.memoryConfigured && (
-                <p className="muted small">
-                  Crew record on this setup: {composer?.record.wins ?? 0}/{composer?.record.calls ?? 0}
-                </p>
-              )}
-              <button className="btn btn-primary btn-post" disabled={!joined || busy || !marketId || !why.trim() || draftOutOfBand} onClick={postCall}>
-                Post call to the crew
+              <button className="btn btn-go btn-big" disabled={!joined || busy || !marketId || !why.trim() || draftOutOfBand} onClick={postCall}>
+                Post call to the crew <Icon name="up" size={18} />
               </button>
               {!joined && <p className="hint">Join the crew to post a call.</p>}
-            </section>
+            </div>
           </section>
+        )}
 
-          <aside className="board-col">
-            <section className="card board-card" aria-label="Crew board">
-              <header className="board-head">
-                <img className="podium" src="/art/nakama-board-podium.webp" alt="" width={72} height={72} />
-                <div>
-                  <h2>Crew board</h2>
-                  <p className="muted small">{status?.memoryConfigured ? 'from Walrus Memory' : 'from on-chain history · recent queue events'}</p>
-                </div>
-              </header>
-              {board.length ? (
-                <ol className="members">
+        {crew && (
+          <section className="card scoreboard" id="board" aria-label="Crew scoreboard">
+            <header>
+              <img src="/art/v2/nakama-icon-trophy.webp" alt="" width={48} height={48} />
+              <div>
+                <h2>Crew scoreboard</h2>
+                <p>{status?.memoryConfigured ? 'From Walrus Memory and settled calls' : 'From on-chain Predict history'}</p>
+              </div>
+            </header>
+            {board.length ? (
+              <table>
+                <thead>
+                  <tr>
+                    <th>Member</th>
+                    <th className="r">Won</th>
+                    <th className="r">Streak</th>
+                    <th className="r">P&amp;L (USDC)</th>
+                  </tr>
+                </thead>
+                <tbody>
                   {board.map((m) =>
                     !status?.memoryConfigured && !m.history ? (
-                      <li className="member member-loading" key={m.address} aria-busy="true">
-                        <div className="member-top">
-                          <Avatar address={m.address} size={40} />
-                          <span className="num">{short(m.address)}</span>
-                          <span className="muted small">Loading history…</span>
-                        </div>
-                        <span className="skeleton skeleton-wide" />
-                      </li>
-                    ) : (
-                      <li className={`member ${m.address === leader ? 'member-lead' : ''}`} key={m.address}>
-                        <div className="member-top">
-                          <span className="avatar-slot">
-                            <Avatar address={m.address} size={40} />
-                            {m.address === leader && <Sticker name="crown" className="crown" label="Crew leader by P&L" />}
-                          </span>
-                          <div className="member-id">
+                      <tr key={m.address} aria-busy="true">
+                        <td>
+                          <span className="who">
+                            <Avatar address={m.address} size={30} />
                             <span className="num">{short(m.address)}</span>
-                            {m.address === owner && <span className="you">viewing</span>}
-                          </div>
-                          <div className="member-pnl">
-                            <b className={`num ${m.pnl > 0 ? 'pos' : m.pnl < 0 ? 'neg' : ''}`}>{signed(m.pnl)}</b>
-                            <small>USDC P&amp;L</small>
-                          </div>
-                        </div>
-                        <div className="member-stats">
-                          <span>
-                            <b className="num">{m.wins}</b>/{m.calls} won
                           </span>
-                          {m.streak > 0 && (
-                            <span className="streak">
-                              <Sticker name="fire" className="inline-sticker" />
-                              {m.streak} win streak
-                            </span>
-                          )}
-                        </div>
-                        <div className="winbar" aria-hidden="true">
-                          <span style={{ width: `${m.calls ? (m.wins / m.calls) * 100 : 0}%` }} />
-                        </div>
-                        {m.history?.trades.slice(0, 2).map((trade) => (
-                          <div className="trade" key={trade.digests.fill}>
-                            <span className="trade-text">
-                              <span className={`side side-${trade.side ?? 'na'}`}>{trade.side ?? 'Predict'}</span>
-                              {trade.strike == null ? '' : <span className="num">{usd(trade.strike)}</span>}
-                              <span>· {trade.result} ·</span>
-                              <span className="num">{trade.pnl == null ? 'pending' : `${signed(trade.pnl)} USDC`}</span>
-                            </span>
-                            <span className="links">
-                              <a className="link-pill" href={`https://suiscan.xyz/mainnet/tx/${trade.digests.fill}`} target="_blank" rel="noreferrer">
-                                fill <Icon name="link" size={13} />
-                              </a>
-                              {trade.digests.payout && (
-                                <a className="link-pill" href={`https://suiscan.xyz/mainnet/tx/${trade.digests.payout}`} target="_blank" rel="noreferrer">
-                                  payout <Icon name="link" size={13} />
-                                </a>
-                              )}
-                            </span>
-                          </div>
-                        ))}
-                        {m.history && !m.history.complete && <p className="muted tiny">Recent history shown</p>}
-                      </li>
+                        </td>
+                        <td colSpan={3} className="muted">
+                          Loading history…
+                        </td>
+                      </tr>
+                    ) : (
+                      <tr key={m.address} className={m.address === owner ? 'me' : ''}>
+                        <td>
+                          <span className="who">
+                            <Avatar address={m.address} size={30} />
+                            <span className="num">{short(m.address)}</span>
+                            {m.address === leader && <img className="crown" src="/art/v2/nakama-icon-crown.webp" alt="Crew leader by P&L" width={24} height={24} />}
+                          </span>
+                        </td>
+                        <td className="r num">
+                          {m.wins}/{m.calls}
+                        </td>
+                        <td className="r">{m.streak > 0 ? <span className="streak">🔥 {m.streak}</span> : <span className="muted">0</span>}</td>
+                        <td className={`r num ${m.pnl > 0 ? 'pos' : m.pnl < 0 ? 'neg' : ''}`}>{signed(m.pnl)}</td>
+                      </tr>
                     ),
                   )}
-                </ol>
-              ) : (
-                <div className="board-empty">
-                  <div className="empty-art">
-                    <img src="/art/nakama-empty-crew.webp" alt="" width={120} height={120} />
-                    <Sticker name="moon" className="empty-sticker" />
-                  </div>
-                  <p className="muted">Quiet crew. Join, then share the invite.</p>
-                </div>
-              )}
-              <div className="playbook">
-                <h3>Playbook</h3>
-                {crew.playbook?.length ? (
-                  crew.playbook.map((p, i) => (
-                    <div key={i} className="play">
-                      <p>
-                        <b>Works:</b> {p.best}
-                      </p>
-                      <p>
-                        <b>Weak:</b> {p.worst}
-                      </p>
-                      <Recalled ids={p.blobId ? [p.blobId] : []} />
-                    </div>
-                  ))
-                ) : (
-                  <p className="muted small">The playbook is written to Walrus every five settled calls.</p>
-                )}
-                <button
-                  className="ghost-btn btn-soft"
-                  onClick={() =>
-                    void act(async () => {
-                      const r = await api<{ text: string }>(`/crews/${crew.id}/recap`);
-                      setRecap(r.text);
-                    })
-                  }
-                >
-                  Recap from crew memory
-                </button>
-                {recap && <p className="recap">{recap}</p>}
+                </tbody>
+              </table>
+            ) : (
+              <div className="empty">
+                <img src="/art/v2/nakama-empty.webp" alt="" width={140} height={140} />
+                <p>Quiet crew. Join, then share the invite.</p>
               </div>
-            </section>
-          </aside>
-        </main>
-      )}
+            )}
+            <div className="playbook">
+              <h3>Playbook</h3>
+              {crew.playbook?.length ? (
+                crew.playbook.map((p, i) => (
+                  <div key={i} className="play">
+                    <p>
+                      <b>Works:</b> {p.best}
+                    </p>
+                    <p>
+                      <b>Weak:</b> {p.worst}
+                    </p>
+                    <Recalled ids={p.blobId ? [p.blobId] : []} />
+                  </div>
+                ))
+              ) : (
+                <p className="muted">The playbook is written to Walrus every five settled calls.</p>
+              )}
+              <button
+                className="btn btn-ghost"
+                onClick={() =>
+                  void act(async () => {
+                    const r = await api<{ text: string }>(`/crews/${crew.id}/recap`);
+                    setRecap(r.text);
+                  })
+                }
+              >
+                Recap from crew memory
+              </button>
+              {recap && <p className="recap">{recap}</p>}
+            </div>
+          </section>
+        )}
+
+        {account && crew && <FundCard owner={account.address.toLowerCase()} writesOn={writesOn} fork={forkMode} kit={kit} />}
+
+        <section className="how" id="how" aria-label="How a crew call works">
+          <h2>How a crew call works</h2>
+          <div className="how-grid">
+            {[
+              ['megaphone', 'Someone calls it', 'Pick a live BTC market, above or below a strike, and say why. Predict odds show before you post.'],
+              ['stopwatch', 'The crew taps in', 'Each friend gets one tap before the market closes. Every order is quoted and simulated first.'],
+              ['shield', 'Everyone signs their own', 'No pooled funds. Each order is signed in that member’s own wallet, from their own Predict account.'],
+              ['trophy', 'The board keeps score', 'Wins, streaks and P&L in USDC from Sui mainnet, with every call remembered on Walrus.'],
+            ].map(([icon, title, body], i) => (
+              <article key={icon} className={`how-card how-${i}`}>
+                <img src={`/art/v2/nakama-icon-${icon}.webp`} alt="" width={72} height={72} />
+                <span className="n">{i + 1}</span>
+                <h3>{title}</h3>
+                <p>{body}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="card markets" aria-label="Live DeepBook Predict markets">
+          <header>
+            <h2>Live DeepBook Predict markets</h2>
+            <span className="muted">via {status?.rpc ?? '…'}</span>
+          </header>
+          <table>
+            <thead>
+              <tr>
+                <th>Market</th>
+                <th className="r">Forward</th>
+                <th className="r hide-sm">Above strike</th>
+                <th className="r hide-sm">Below strike</th>
+                <th className="r">Closes in</th>
+              </tr>
+            </thead>
+            <tbody>
+              {openMarkets.length ? (
+                [...openMarkets]
+                  .sort((a, b) => a.expiryMs - b.expiryMs)
+                  .slice(0, 6)
+                  .map((m) => (
+                    <tr key={m.id}>
+                      <td>BTC · {m.cadence} min</td>
+                      <td className="r num">{m.forward != null ? usd(m.forward) : '—'}</td>
+                      <td className="r num hide-sm">{m.suggestedStrike != null ? usd(m.suggestedStrike) : '—'}</td>
+                      <td className="r num hide-sm">{m.suggestedStrikeDown != null ? usd(m.suggestedStrikeDown) : '—'}</td>
+                      <td className="r num">{clock(m.expiryMs)}</td>
+                    </tr>
+                  ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="muted">
+                    No open BTC market right now. New ones open every minute.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </section>
+      </div>
 
       <footer className="foot">
-        DeepBook Predict on Sui mainnet · memory on Walrus · chain reads via {status?.rpc ?? 'configured RPC'} · wallet members sign their own
-        orders · art generated with ChatGPT
+        <img src="/art/v2/nakama-mascot.webp" alt="" width={28} height={28} />
+        <span>
+          <b>NAKAMA</b> 仲間 · DeepBook Predict on Sui mainnet · memory on Walrus · chain reads via {status?.rpc ?? 'configured RPC'} · members sign their own orders · art generated with ChatGPT
+        </span>
       </footer>
     </div>
   );
