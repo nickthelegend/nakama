@@ -77,6 +77,7 @@ async function api<T>(path: string, body?: unknown): Promise<T> {
 }
 
 const short = (s: string) => `${s.slice(0, 6)}…${s.slice(-4)}`;
+type Odds = { direction: string; probability: number | null; inBand: boolean | null; band: { min: number; max: number }; forward?: number; asOfMs?: number | null; rpc?: string };
 const usd = (n: number) => `$${n.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
 
 function Recalled({ ids }: { ids: string[] | undefined }) {
@@ -168,6 +169,25 @@ export function App() {
   const latest = crew?.calls.at(-1);
   const joined = !!owner && !!crew?.members.includes(owner);
   const mineIn = !!active?.orders.some((o) => o.address === owner);
+  const [odds, setOdds] = useState<Odds | null>(null);
+  const [oddsError, setOddsError] = useState<string | null>(null);
+  useEffect(() => {
+    setOdds(null);
+    setOddsError(null);
+    if (!active || active.setup.direction === 'range') return;
+    let cancelled = false;
+    const load = () =>
+      api<Odds>(`/calls/${active.id}/odds`)
+        .then((o) => !cancelled && (setOdds(o), setOddsError(null)))
+        .catch((e) => !cancelled && setOddsError(String(e.message ?? e).replace(/^Error:\s*/, '')));
+    load();
+    const t = setInterval(load, 8000);
+    return () => {
+      cancelled = true;
+      clearInterval(t);
+    };
+  }, [active?.id]);
+  const outOfBand = odds?.inBand === false;
 
   useEffect(() => {
     if (!crew) return;
@@ -381,7 +401,7 @@ export function App() {
               <p className="eyebrow">your crew · BTC/USD</p>
               <h1>{crew.name}</h1>
               {crew.readOnlyDemo && <span className="joiner">preview crew</span>}
-              <p className="muted">{crew.members.length} members</p>
+              <p className="muted">{crew.members.length} {crew.members.length === 1 ? "member" : "members"}</p>
             </div>
             <div className="crew-actions">
               <button
@@ -418,6 +438,21 @@ export function App() {
                 {status?.memoryConfigured && <> · crew is {active.crewRecord?.wins ?? 0}/{active.crewRecord?.calls ?? 0} on this setup {active.crewRecord?.cold && <b className="cold">COLD SETUP</b>}</>}
               </p>
               <Recalled ids={active.recalled} />
+              {odds?.probability != null && (
+                <div className={`odds ${outOfBand ? 'odds-out' : 'odds-in'}`} aria-live="polite">
+                  <div className="odds-bar" aria-hidden="true">
+                    <span className="odds-band" style={{ left: `${odds.band.min * 100}%`, width: `${(odds.band.max - odds.band.min) * 100}%` }} />
+                    <span className="odds-dot" style={{ left: `${Math.min(100, Math.max(0, odds.probability * 100))}%` }} />
+                  </div>
+                  <p className="small">
+                    <b className="num">{odds.probability < 0.001 ? '<0.1' : (odds.probability * 100).toFixed(1)}%</b> Predict odds now
+                    {outOfBand
+                      ? ` · outside the ${odds.band.min * 100}–${odds.band.max * 100}% entry band, so Predict won't take new taps on this strike`
+                      : ` · inside the ${odds.band.min * 100}–${odds.band.max * 100}% entry band`}
+                  </p>
+                </div>
+              )}
+              {oddsError && <p className="muted small">Live odds unavailable: {oddsError}</p>}
               <div className="joiners">
                 {active.orders.length
                   ? active.orders.map((o) => (
@@ -428,11 +463,13 @@ export function App() {
                   : 'Nobody in yet'}
               </div>
               {joined && (
-                <button className="tap" disabled={busy || mineIn} onClick={oneTap}>
+                <button className="tap" disabled={busy || mineIn || outOfBand} onClick={oneTap}>
                   {busy ? (
                     'Checking Predict…'
                   ) : mineIn ? (
                     "You're in"
+                  ) : outOfBand ? (
+                    'Entry closed'
                   ) : (
                     <>
                       {status?.mainnetWrites && !viewingAs && !crew.readOnlyDemo ? 'Tap in' : 'Dry-run tap in'} · {size} USDC

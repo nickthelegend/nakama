@@ -343,6 +343,51 @@ label {
   justify-content: center;
   gap: 10px;
 }
+.odds {
+  margin: 10px 0 4px;
+}
+.odds p {
+  margin: 6px 0 0;
+}
+.odds-bar {
+  position: relative;
+  height: 10px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: #fff;
+}
+.odds-band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--up) 45%, #fff);
+}
+.odds-dot {
+  position: absolute;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  margin: -8px 0 0 -8px;
+  border-radius: 50%;
+  background: var(--ink);
+  border: 2px solid #fff;
+  transition: left 0.6s ease;
+}
+.odds-out .odds-dot {
+  background: var(--coral);
+}
+.odds-out p {
+  font-weight: 600;
+}
+@media (prefers-reduced-motion: reduce) {
+  .odds-dot {
+    transition: none;
+  }
+}
+.tap:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
+}
 .boost {
   background: var(--yellow);
   color: var(--ink);
