@@ -225,6 +225,23 @@ export function App() {
   }, [crew?.id, crew?.members.join(','), status?.memoryConfigured]);
 
   const market = markets.find((m) => m.id === marketId);
+  const strikeValue = strike || String((direction === 'down' ? market?.suggestedStrikeDown : market?.suggestedStrike) ?? '');
+  const [draftOdds, setDraftOdds] = useState<Odds | null>(null);
+  useEffect(() => {
+    setDraftOdds(null);
+    if (!marketId || direction === 'range' || !Number(strikeValue)) return;
+    let cancelled = false;
+    const t = setTimeout(() => {
+      api<Odds>(`/odds?marketId=${encodeURIComponent(marketId)}&direction=${direction}&strike=${Number(strikeValue)}`)
+        .then((o) => !cancelled && setDraftOdds(o))
+        .catch(() => {});
+    }, 450);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [marketId, direction, strikeValue]);
+  const draftOutOfBand = draftOdds?.inBand === false;
   const secondsLeft = (ms: number) => Math.max(0, Math.ceil((ms - now) / 1000));
 
   async function act(fn: () => Promise<void>) {
@@ -540,12 +557,21 @@ export function App() {
                 </label>
               )}
             </div>
+            {draftOdds?.probability != null && (
+              <p className={`odds-hint small ${draftOutOfBand ? 'odds-hint-out' : ''}`} aria-live="polite">
+                Predict odds at {usd(Number(strikeValue))}:{' '}
+                <b className="num">{draftOdds.probability < 0.001 ? '<0.1' : (draftOdds.probability * 100).toFixed(1)}%</b>
+                {draftOutOfBand
+                  ? ` · outside the ${draftOdds.band.min * 100}–${draftOdds.band.max * 100}% entry band, so nobody could join. Move it nearer the money.`
+                  : ` · inside the entry band, the crew can join`}
+              </p>
+            )}
             <label>
               Why
               <input maxLength={280} value={why} onChange={(e) => setWhy(e.target.value)} placeholder="What do you see?" />
             </label>
             {status?.memoryConfigured && <p className="muted small">Crew record on this setup: {composer?.record.wins ?? 0}/{composer?.record.calls ?? 0}</p>}
-            <button className="cta" disabled={!joined || busy || !marketId || !why.trim()} onClick={postCall}>
+            <button className="cta" disabled={!joined || busy || !marketId || !why.trim() || draftOutOfBand} onClick={postCall}>
               Post call to the crew
             </button>
           </section>

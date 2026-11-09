@@ -384,6 +384,17 @@ label {
     transition: none;
   }
 }
+.odds-hint {
+  margin: -4px 0 10px;
+  padding: 8px 10px;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--up) 14%, #fff);
+}
+.odds-hint-out {
+  background: color-mix(in srgb, var(--coral) 18%, #fff);
+  font-weight: 600;
+}
 .tap:disabled {
   opacity: 0.75;
   cursor: not-allowed;
@@ -452,6 +463,10 @@ label {
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
   margin-bottom: 12px;
+}
+.dir {
+  white-space: nowrap;
+  padding-inline: 6px;
 }
 .dir.on.dir-up {
   background: var(--up);
