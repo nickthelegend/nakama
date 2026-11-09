@@ -12,12 +12,9 @@ export function chain(env = process.env) {
   const client = tatum
     ? new SuiJsonRpcClient({
         network: 'mainnet',
-        transport: new JsonRpcHTTPTransport({
-          url: rpcUrl,
-          rpc: { headers: { 'x-api-key': env.TATUM_API_KEY! } },
-        }),
+        transport: new JsonRpcHTTPTransport({url: rpcUrl, rpc: {headers: {'x-api-key': env.TATUM_API_KEY!}}}),
       })
-    : new SuiGrpcClient({ network: 'mainnet', baseUrl: rpcUrl });
+    : new SuiGrpcClient({network: 'mainnet', baseUrl: rpcUrl});
   const sdk = new PredictClient({ network: 'mainnet', client });
   return {
     client,
