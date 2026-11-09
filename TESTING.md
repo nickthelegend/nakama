@@ -7,3 +7,7 @@
 - Fresh private-window UI walkthrough: created **1** `preview crew`, joined both public addresses through the view-as switcher, posted **1** live 5-minute BTC call, and saw **2** `Dry-run success` messages. Each showed 2.00 USDC total debit, a 0.02 USDC fee, and `No order submitted`. The board showed decoded on-chain records for both members.
 
 The UI walkthrough used `0xa9eb…c79c` and `0x96ed…ccd2` from [docs/DEMO-ADDRESSES.md](docs/DEMO-ADDRESSES.md). A previous call hit a real `EOrderFailsLimits` admission abort after the market moved; the subsequent fresh call simulated successfully for both addresses. These are time-sensitive live quotes, not fixed fixtures. The history endpoint scans at most 1,000 recent events of each queue type and marks a truncated result `complete: false`.
+
+## Round-2 judging pass (Nov 9 2026)
+- `pnpm test`: 5/5 passed; `pnpm -r build` passed.
+- Checked by hand against mainnet through the dev RPC: `GET /calls/:id/odds` returned 25.9% (in band) for a near strike and 0.005% (out of band) for a far one. `GET /odds` and `POST /crews/:id/calls` refused a $76,000 strike ("outside the 15–50% entry band"). At 375 px the composer shows the red hint, Post is disabled, and there is no horizontal overflow.
