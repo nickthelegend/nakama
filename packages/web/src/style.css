@@ -2493,3 +2493,18 @@ mysten-dapp-kit-connect-button::part(trigger) {
     align-items: stretch;
   }
 }
+.demo-signer-badge {
+  position: fixed;
+  z-index: 10000;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  padding: 9px 15px;
+  border: 2px solid #fff;
+  border-radius: 8px;
+  background: #a12618;
+  color: #fff;
+  font: 700 14px/1.2 system-ui, sans-serif;
+  box-shadow: 0 2px 14px #0008;
+  text-align: center;
+}

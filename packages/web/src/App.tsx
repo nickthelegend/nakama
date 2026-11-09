@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useCurrentAccount, useDAppKit } from '@mysten/dapp-kit-react';
+import { useCurrentAccount, useCurrentWallet, useDAppKit } from '@mysten/dapp-kit-react';
 import { ConnectButton } from '@mysten/dapp-kit-react/ui';
+import { DEMO_WALLET_NAME } from './demo-wallet';
 import { Avatar, Icon, Ring, Sticker, short, signed, usd } from './ui';
 
 type Direction = 'up' | 'down' | 'range';
@@ -97,6 +98,7 @@ function Recalled({ ids }: { ids: string[] | undefined }) {
 
 export function App() {
   const account = useCurrentAccount();
+  const wallet = useCurrentWallet();
   const kit = useDAppKit();
   const [viewAddresses, setViewAddresses] = useState<string[]>(() => {
     const valid = (value: string) => /^0x[0-9a-f]{64}$/i.test(value);
@@ -310,7 +312,7 @@ export function App() {
       if (!active || !owner || !crew) return;
       const p = await api<PlanResult>(`/calls/${active.id}/plan`, {
         address: owner,
-        size: suggestion?.member?.size,
+        size: Math.max(2, suggestion?.member?.size ?? 2),
       });
       if (!p.quote.accepting) return setMessage(`Predict refused: ${p.quote.refusal ?? 'unknown'}`);
       if (p.dryRun?.status !== 'success')
@@ -359,7 +361,7 @@ export function App() {
     e.currentTarget.style.setProperty('--py', '0');
   };
 
-  const size = suggestion?.member?.size ?? 2;
+  const size = Math.max(2, suggestion?.member?.size ?? 2);
   const boosted = suggestion?.member?.multiplier === 1.5;
   const liveMode = !!status?.mainnetWrites && !viewingAs && !crew?.readOnlyDemo;
   const suggestedStrike = (direction === 'down' ? market?.suggestedStrikeDown : market?.suggestedStrike) ?? null;
@@ -494,6 +496,9 @@ export function App() {
 
   return (
     <div className="shell">
+      {account && wallet?.name === DEMO_WALLET_NAME && (
+        <div className="demo-signer-badge" role="status">Demo signer · server-held demo key · real mainnet funds</div>
+      )}
       <header className="topbar">
         <a className="brand" href="/" aria-label="Nakama home">
           <img src="/art/nakama-mark.webp" alt="" width={40} height={40} />
@@ -835,6 +840,7 @@ export function App() {
                 ) : (
                   <p className="hint">Join the crew to tap in on this call.</p>
                 )}
+                <p className="muted small">Minimum 2 USDC. Predict takes a 0.02 USDC fee and rounds to whole lots.</p>
                 {status?.memoryConfigured && suggestion?.member && (
                   <p className="muted small">
                     Your record from Walrus Memory {suggestion.member.record.wins}/{suggestion.member.record.calls} · {suggestion.member.streak} win

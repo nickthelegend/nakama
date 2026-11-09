@@ -2,6 +2,12 @@
 
 Your crew's live BTC calls, one tap to join. Crew and member records are recalled from Walrus Memory. Each member signs their own DeepBook Predict queued order in their Sui wallet.
 
+## Demo signer (recording only)
+
+For the recorded headless mainnet demo, set `DEMO_SIGNER=I_UNDERSTAND_SERVER_HOLDS_KEYS` and put Sui `suiprivkey…` strings in `DEMO_MEMBER_A_KEY` and `DEMO_MEMBER_B_KEY` in this repo's gitignored `.env`. The wallet picker then offers **Demo signer (server-held key)** for the two members. A persistent badge identifies the connected wallet as a server-held demo key using real mainnet funds.
+
+This is a custodial demo wallet: the server holds both keys, and each account is funded with a small amount from the hub. It is off by default. The server signs only its own prepared transaction bytes for the matching member within 60 seconds; preview crews cannot sign, and `/execute` still requires the existing mainnet write gate. Never use these demo keys as personal wallets or expose this server to untrusted clients during recording.
+
 ## Run
 
 ```sh
@@ -26,7 +32,13 @@ The server stores crew state in gitignored `data/crews.json`. It writes membersh
 - `GET /members/:address/history` scans recent mainnet Predict queue fills and settlement payouts and returns decoded trades, transaction digests, and a wins/calls/streak record. The response includes scan counts and `complete`; `complete: false` means the bounded recent-event window is not an all-time record.
 - `GET /events` streams state notifications; `GET /markets` and `GET /status` expose live state and setup.
 
-The server holds no member private keys. Its chain client uses Tatum's native Sui gRPC gateway with the API key kept server side; Sui JSON-RPC has been deprecated. The browser wallet client uses the public Sui gRPC-web fullnode for wallet operations. `NAKAMA_DEV_SUI_RPC` enables a visible gRPC development override when Tatum is absent. Default server chain access fails closed with `Setup required: TATUM_API_KEY`. Tatum must allow `LedgerService/ListEvents` and `TransactionExecutionService/SimulateTransaction` for history, watcher scans, markets and quotes to work; gateway permission or rate-limit errors are returned rather than treated as successful reads.
+Outside the opt-in demo signer below, the server holds no member private keys. Its chain client uses Tatum's native Sui gRPC gateway with the API key kept server side; Sui JSON-RPC has been deprecated. The browser wallet client uses the public Sui gRPC-web fullnode for wallet operations. `NAKAMA_DEV_SUI_RPC` enables a visible gRPC development override when Tatum is absent. Default server chain access fails closed with `Setup required: TATUM_API_KEY`. Tatum must allow `LedgerService/ListEvents` and `TransactionExecutionService/SimulateTransaction` for history, watcher scans, markets and quotes to work; gateway permission or rate-limit errors are returned rather than treated as successful reads.
+
+## Demo signer (recording only)
+
+The demo signer is off by default. For a recorded mainnet session, set `DEMO_SIGNER=I_UNDERSTAND_SERVER_HOLDS_KEYS` and put `DEMO_MEMBER_A_KEY` and `DEMO_MEMBER_B_KEY` in this repo's gitignored `.env`. These are server-held Sui private keys for demo members funded with small amounts from the hub. Anyone who can access the running server's signing endpoint can ask it to sign a transaction the server recently prepared for one of those members; use it only in a controlled recording environment.
+
+The wallet picker then offers **Demo signer (server-held key)**. While connected, a fixed badge says **Demo signer · server-held demo key · real mainnet funds** and must remain visible in the recording. `GET /demo-signer` exposes only account labels and addresses; `POST /demo-signer/sign` signs exact transaction bytes prepared for the same address in the last 60 seconds. The existing mainnet write flag, preview-crew restriction, and `/execute` checks still apply. Each Predict order starts at 2 USDC because the 0.02 USDC fee and whole-lot rounding make smaller orders fail. Unset `DEMO_SIGNER` after recording.
 
 
 ## Read-only walkthrough
