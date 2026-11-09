@@ -129,6 +129,8 @@ export function App() {
   const [strike, setStrike] = useState('');
   const [upper, setUpper] = useState('');
   const [message, setMessage] = useState('');
+  // A result belongs to the member who tapped: clear it when the viewed member changes.
+  useEffect(() => setMessage(''), [owner]);
   const [busy, setBusy] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [recap, setRecap] = useState('');
@@ -231,14 +233,17 @@ export function App() {
     setDraftOdds(null);
     if (!marketId || direction === 'range' || !Number(strikeValue)) return;
     let cancelled = false;
-    const t = setTimeout(() => {
+    const load = () =>
       api<Odds>(`/odds?marketId=${encodeURIComponent(marketId)}&direction=${direction}&strike=${Number(strikeValue)}`)
         .then((o) => !cancelled && setDraftOdds(o))
         .catch(() => {});
-    }, 450);
+    // Debounce typing, then keep the odds live like the call card does: 5-minute BTC odds move with every tick.
+    const t = setTimeout(load, 450);
+    const poll = setInterval(load, 8000);
     return () => {
       cancelled = true;
       clearTimeout(t);
+      clearInterval(poll);
     };
   }, [marketId, direction, strikeValue]);
   const draftOutOfBand = draftOdds?.inBand === false;
