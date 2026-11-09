@@ -46,7 +46,7 @@ Nakama uses `@mysten-incubation/memwal` against the mainnet relayer `https://rel
 
 Writes are capped at 30 a minute and back off on HTTP 429. Mainnet blobs took over 60 s to certify, so each write waits up to 300 s.
 
-**Live on mainnet (Nov 9):** 15 memories in `nakama-v1:crew:aa3e80a3` (3) and three `nakama-v1:member:<address>` namespaces (7, 4 and 1). They were counted with `packages/core/scripts/walrus-count.ts` against the relayer's namespace list. The member result memories were recalled when the crew board and composer loaded. The funded run adds a real crew's joins, call, results and, every five settled calls, a playbook.
+**Live on mainnet (Nov 9):** 15 memories in `nakama-v1:crew:aa3e80a3` (3) and three `nakama-v1:member:<address>` namespaces (7, 4 and 1). They were counted with `packages/core/scripts/walrus-count.ts` against the relayer's namespace list. The funded run adds a real crew's joins, call, results and, every five settled calls, a playbook.
 
 ## How it uses Tatum
 
