@@ -46,3 +46,20 @@ test('demo signer HTTP route signs only fresh prepared bytes for its address', a
     await once(server, 'close');
   }
 });
+
+test('demo signer stays disabled without the exact opt-in value', async () => {
+  const handler = createDemoSigner([{ label: 'Test', variable: 'TEST_KEY' }], new Map(), new Map(), () => true, { DEMO_SIGNER: 'ON' });
+  const server = createServer((req, res) => { void handler(req, res); });
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  const base = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
+  try {
+    assert.deepEqual(await (await fetch(`${base}/demo-signer`)).json(), { demo: true, enabled: false, accounts: [] });
+    const denied = await fetch(`${base}/demo-signer/sign`, { method: 'POST', body: JSON.stringify({ address: '0x0', bytes: 'AA==' }) });
+    assert.equal(denied.status, 400);
+    assert.equal((await denied.json()).demo, true);
+  } finally {
+    server.close();
+    await once(server, 'close');
+  }
+});

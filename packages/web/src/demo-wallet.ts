@@ -1,6 +1,5 @@
 import { registerWallet, type Wallet, type SuiSignTransactionInput } from '@mysten/wallet-standard';
 import { Transaction } from '@mysten/sui/transactions';
-import { SuiGrpcClient } from '@mysten/sui/grpc';
 import { toBase64 } from '@mysten/sui/utils';
 
 type DemoAccount = { label: string; address: string };
@@ -27,16 +26,16 @@ export async function registerDemoWallet() {
       'standard:events': { version: '1.0.0', on: () => () => {} },
       'sui:signTransaction': {
         version: '2.0.0',
-        signTransaction: async ({ transaction, account, chain: selectedChain }: SuiSignTransactionInput) => {
+        signTransaction: async ({ transaction, account, chain: selectedChain, signal }: SuiSignTransactionInput) => {
           if (selectedChain !== chain || !accounts.some((a) => a.address === account.address))
             throw Error('Demo account or chain unavailable');
+          signal?.throwIfAborted();
           const tx = Transaction.from(await transaction.toJSON());
-          const client = new SuiGrpcClient({ network: 'mainnet', baseUrl: 'https://fullnode.mainnet.sui.io:443' });
-          const built = await tx.build({ client });
+          const built = await tx.build();
           const bytes = toBase64(built);
           const response = await fetch('/api/demo-signer/sign', {
             method: 'POST', headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ address: account.address, bytes }),
+            body: JSON.stringify({ address: account.address, bytes }), signal,
           });
           const signed = await response.json();
           if (!response.ok) throw Error(signed.error ?? 'Demo signing refused');
