@@ -46,7 +46,7 @@ const mainnetLive=()=>!fork&&process.env.NAKAMA_ALLOW_MAINNET==='I_ACKNOWLEDGE_R
 const live=()=>mainnetLive()||forkWrites('NAKAMA');
 const liveLabel=()=>fork?'LOCAL FORK writes (not mainnet)':'real USDC';
 const preparedFunding=new Map<string,{address:string;at:number}>();
-const demoSigner=createDemoSigner([{label:'Member A',variable:'DEMO_MEMBER_A_KEY'},{label:'Member B',variable:'DEMO_MEMBER_B_KEY'}],prepared,preparedFunding,bytes=>{const order=prepared.get(bytes);return live()&&!fork&&(!order||!call(order.callId).c.readOnlyDemo)},fork?{DEMO_SIGNER:undefined}:process.env);
+const demoSigner=createDemoSigner([{label:'Member A',variable:'DEMO_MEMBER_A_KEY'},{label:'Member B',variable:'DEMO_MEMBER_B_KEY'}],prepared,preparedFunding,bytes=>{const order=prepared.get(bytes);return live()&&(!order||!call(order.callId).c.readOnlyDemo)},fork?{DEMO_SIGNER:process.env.DEMO_SIGNER,DEMO_MEMBER_A_KEY:process.env.NAKAMA_MEMBER_A_KEY,DEMO_MEMBER_B_KEY:process.env.NAKAMA_MEMBER_B_KEY}:process.env);
 function safeError(e:unknown){let s=String(e);for(const n of ['TATUM_API_KEY','MEMWAL_MAINNET_KEY','MEMWAL_MAINNET_ACCOUNT_ID','OPENROUTER_API_KEY','NAKAMA_DEV_SUI_RPC','DEMO_MEMBER_A_KEY','DEMO_MEMBER_B_KEY']){const v=process.env[n];if(v)s=s.replaceAll(v,'[redacted]')}return s}
 function respond(res:ServerResponse,code:number,value:unknown){res.writeHead(code,{'content-type':'application/json','access-control-allow-origin':'*'});res.end(JSON.stringify(value,(_,v)=>typeof v==='bigint'?String(v):v))}
 async function save(){await mkdir(dataDir,{recursive:true});await writeFile(dbPath,JSON.stringify(crews,null,2));for(const r of listeners)r.write(`data: ${JSON.stringify({type:'crews'})}\n\n`)}
