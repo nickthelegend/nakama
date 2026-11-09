@@ -1,6 +1,76 @@
 # Nakama 仲間
 
-Your crew's live BTC calls, one tap to join. Crew and member records are recalled from Walrus Memory. Each member signs their own DeepBook Predict queued order in their Sui wallet.
+**Make small Bitcoin calls with your friends, as a crew.** One friend posts a call ("BTC above $73,766 in 5 minutes"), and everyone else joins with one tap. Each person signs their own small bet from their own wallet, so nobody holds anyone else's money. After each round, the crew's results go into Walrus Memory, and next time Nakama recalls what worked for this crew to suggest a stake and warn about setups that keep losing. (Market reads and dry-runs are live on mainnet today; memory writes and real signed rounds are **PENDING** keys and funding, see the status table.)
+
+Built for **Total Recall (Tatum x Walrus Memory)**, track **03 Consumer Finance Apps**, on Sui mainnet with DeepBook Predict. Submission answers: [HACKATHON_SUBMISSION_FORM.md](HACKATHON_SUBMISSION_FORM.md). Blog post: [docs/BLOG.md](docs/BLOG.md).
+
+## Status: live today vs pending keys
+
+| Piece | Today | What unblocks it |
+|---|---|---|
+| Live BTC markets, odds and the 15–50% entry-band check | **Live** on Sui mainnet | – |
+| One-tap quote and transaction dry-run | **Live** on mainnet, through the public fullnode (UI badge "dev RPC (not Tatum)") | Re-check through Tatum with the new rate limiter; the first Tatum smoke test got HTTP 429 on simulation |
+| Tatum gRPC reads | **Verified Nov 9**: gas price, plus `getTransaction` decoded into a Predict fill | – |
+| Member history from on-chain fills and payouts | **Live** (event scans use the public fullnode, because Tatum's gateway refuses `ListEvents`) | – |
+| Funding a Predict account, joining a call with a real queued order, verifying the receipt | **LOCAL FORK only** ([docs/FORK.md](docs/FORK.md)) | **PENDING:** the hub needs funding for one signed crew round on mainnet (about 6 USDC + 0.6 SUI for two members) |
+| Fills, settlement and payouts recorded by the watcher | **Not proven anywhere.** The fork has no Predict keeper and a frozen clock | **PENDING:** a real mainnet round that the keeper fills and the market settles |
+| Sending a signed transaction through Tatum | **Not exercised** | **PENDING:** the same mainnet round |
+| Walrus Memory writes and recall | **Not live: 0 memories on mainnet.** The event requires at least 10 | **PENDING:** `MEMWAL_MAINNET_ACCOUNT_ID` + `MEMWAL_MAINNET_KEY`, then settled rounds. Plan: 1 crew, 2 members, 3 settled calls = 2 + 3 + 6 = 11 memories |
+| LLM crew recap | Built, off without a key | `OPENROUTER_API_KEY` |
+| Public repo and film link | **PENDING** | Secret scan and Nick's yes; film upload |
+
+## Try it
+
+You need Node.js and pnpm 10. The read-only walkthrough needs no keys and no wallet.
+
+```sh
+pnpm install
+cp .env.example .env
+# Read-only, no keys: point the server at the public Sui fullnode (shown in the UI as "dev RPC (not Tatum)")
+NAKAMA_DEV_SUI_RPC=https://fullnode.mainnet.sui.io:443 pnpm dev
+# With Tatum: set TATUM_API_KEY in .env instead and run pnpm dev
+```
+
+1. Open `http://localhost:5173/?as=0xa9eb57bfae500797f04c9802d468c34151e60a29470464f9f9d13b322275c79c&as=0x96ed1d73783b195ea2b9bcf9447c9a871b326ea41271f9dd3113b4dee62eccd2`. These are two public Predict traders from [docs/DEMO-ADDRESSES.md](docs/DEMO-ADDRESSES.md), not our wallets. The browser never signs in this mode.
+2. Create a crew (it's labelled **preview crew**). Join as the first address, switch to the second and join again.
+3. Post a call on a live BTC 1m or 5m market. Type a far strike to see the composer refuse it (outside the 15–50% band), then a near one.
+4. Tap in as each member. You get a real mainnet quote and dry-run: "Dry-run success … 2.00 USDC including 0.02 fee. No order submitted."
+5. Scroll to the crew board. Each member's record is decoded from their on-chain Predict fills and payouts, labelled **from on-chain history**.
+
+Live signing needs `NAKAMA_ALLOW_MAINNET=I_ACKNOWLEDGE_REAL_USDC`, a member wallet with a funded Predict account, and `TATUM_API_KEY`. See [Run](#run). The mainnet run plan (funding, order sizes, returning funds) is in the build workspace's `MAINNET-RUNBOOK.md`, outside this repo.
+
+## Proof
+
+**Sui mainnet: reads and dry-runs only.** Nakama has sent no transaction on mainnet.
+
+| What | Result | Where |
+|---|---|---|
+| Tatum gRPC `getReferenceGasPrice` | 100 | [TESTING.md](TESTING.md), Nov 9 |
+| Tatum gRPC `getTransaction` | A historical Predict transaction, decoded into one queued fill | [TESTING.md](TESTING.md), Nov 9 |
+| `pnpm test:live` (public fullnode) | 3 active BTC markets, a 2 USDC quote, 7 recent trades decoded with fill and payout digests | [TESTING.md](TESTING.md) |
+| UI walkthrough, two members | 2 × "Dry-run success", 2.00 USDC debit, 0.02 USDC fee, no order submitted | [TESTING.md](TESTING.md); raw take `videos/round2/nakama-raw.mp4` |
+| Entry-band check | 25.9% (in band) for a near strike, 0.005% (out) for a far one; a $76,000 strike was refused | [TESTING.md](TESTING.md) |
+| Decoded public fills (other traders' trades, read by Nakama) | [HdAZr7bC…8fPp](https://suiscan.xyz/mainnet/tx/HdAZr7bCEQyuaaq4eFBU29ad1V6BWuZPYSxhRTGt8fPp), [BNFnd7fh…LGB](https://suiscan.xyz/mainnet/tx/BNFnd7fhctRdqLDUzNTXcpfpeMFBfdqkJuj2oe2yBLGB), [GVwMyPLY…mYVC](https://suiscan.xyz/mainnet/tx/GVwMyPLY8kFGz6oUmmTVmuA3b3VCgrXcpGLbNGPxmYVC) | [docs/DEMO-ADDRESSES.md](docs/DEMO-ADDRESSES.md) |
+| Walrus Memory blobs | **None yet (PENDING keys)** | – |
+
+**LOCAL FORK of Sui mainnet (checkpoint 343353046): fork-only digests.** These exist only on a local fork. They are **not on Suiscan** and moved no real funds. They show that the write path executes real Move code.
+
+| Step (LOCAL FORK) | Digest (LOCAL FORK only) |
+|---|---|
+| Member A: create Predict account and deposit 3 USDC via `/fund` → `/execute` | `JD3F22K55KwzYXCvpvAXhALAuaFG1YwkBMkjFiCheHe5` |
+| Member B: same | `FX9XvNkePjk74N7wLeg8LArqNfbryvpGaecnpHGdwt7j` |
+| Member A joins the call for 2 USDC; `/orders` verified it | `x8aX5UYfHud5rbE6VTWRggnBTucBn6MppEPTYcEjhYB` |
+| Member B joins the call for 2 USDC; `/orders` verified it | `YBwMh1mxQQbtTnP3YxZG5hxfixfKCHdrcU5J6j5F3iX` |
+
+The fork could not show fills, settlement, payouts, Walrus writes or sending through Tatum. The full table and its limits are in [docs/FORK.md](docs/FORK.md).
+
+## Film
+
+`videos/nakama/nakama-film-v2.mp4`, in the grokbot workspace and **not public yet** (PENDING upload). It shows real mainnet reads and dry-runs with two public addresses in a labelled read-only preview crew. Nothing is signed or sent, and the recording shows "dev RPC (not Tatum)" and "Setup required" for Walrus Memory.
+
+## How it works (technical)
+
+Your crew's live BTC calls, one tap to join. Crew and member records are recalled from Walrus Memory once its keys are set (PENDING, see the status table). Each member signs their own DeepBook Predict queued order in their Sui wallet.
 
 ## Demo signer (recording only)
 
@@ -54,3 +124,12 @@ The Tatum-backed Sui client, Predict market and plan helpers, and Walrus Memory 
 ## Art
 
 Art generated with ChatGPT (image generation), directed in [docs/ART.md](docs/ART.md); source PNGs stay out of git and the web app ships WebP copies in `packages/web/public/art/`.
+
+## AI and art disclosure
+
+- **Claude (Anthropic):** planning, code review, UI and styling, documentation, film edit and copy.
+- **Codex (OpenAI):** wrote much of the TypeScript from reviewed briefs.
+- **ChatGPT image generation:** all crew art, stickers, onboarding slides, the title card and social images. Prompts are in [docs/ART.md](docs/ART.md).
+- **Chatterbox:** the synthetic voiceover in the film.
+
+No users, testimonials or results in this repo are invented. The two addresses in the walkthrough are public mainnet traders, labelled as such.
