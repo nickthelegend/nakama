@@ -314,7 +314,7 @@ export function App() {
       });
       if (!p.quote.accepting) return setMessage(`Predict refused: ${p.quote.refusal ?? 'unknown'}`);
       if (p.dryRun?.status !== 'success')
-        return setMessage(`Dry-run ${p.dryRun?.status ?? 'unavailable'}: ${p.dryRun?.error ?? 'fund your Predict account'}`);
+        return setMessage(`Dry-run ${p.dryRun?.status ?? 'unavailable'}: ${p.dryRun?.error || 'the chain returned no reason'}`);
       if (!status?.mainnetWrites || viewingAs || crew.readOnlyDemo)
         return setTapResult({ address: owner, totalDebit: p.quote.totalDebit, orderFee: p.quote.orderFee });
       if (!p.transaction) throw Error('No transaction');
