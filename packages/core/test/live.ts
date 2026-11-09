@@ -1,4 +1,4 @@
-import { chain, markets } from '../src/index.js';
+import { chain, markets, memberHistory } from '../src/index.js';
 import { strict as assert } from 'node:assert';
 const c=chain(); const live=await markets();
 assert.equal(live.rpc,process.env.TATUM_API_KEY?'Tatum':'dev RPC (not Tatum)');
@@ -12,3 +12,7 @@ const descriptor={underlying:'BTC',expiryMs:market.expiryMs,marketId:market.id,s
 const quote=await c.predict.read.planMint(owner,descriptor,{amount:2,slippageCents:5});
 assert.ok(quote.potentialPayout>0);
 console.log(`LIVE PLAN: payout ${quote.potentialPayout.toFixed(2)} USDC, fee ${quote.orderFee.toFixed(2)}, refusal ${quote.refusal??'none'}; no order submitted`);
+const history=await memberHistory('0x7c9250467b7d7cc0aa2a9e76d06e9e8af313afa22285f1a3c314d749617b486e',c);
+assert.ok(history.trades.length>0);
+assert.ok(history.trades.some(t=>t.digests.fill&&t.digests.payout));
+console.log(`LIVE HISTORY: ${history.trades.length} decoded trades with fill and payout digests; no order submitted`);

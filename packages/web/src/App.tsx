@@ -46,7 +46,8 @@ type Crew = {
   readOnlyDemo?: boolean;
   playbook?: { best: string; worst: string; blobId?: string }[];
 };
-type Status = { rpc: string; memoryNetwork: string; mainnetWrites: boolean; setup: string[] };
+type Status = { rpc: string; memoryNetwork: string; memoryConfigured: boolean; mainnetWrites: boolean; setup: string[] };
+type History = { complete: boolean; trades: { result: string; side: string | null; strike: number | null; pnl: number | null; digests: { fill: string; payout: string | null } }[]; record: { wins: number; calls: number; streak: number; pnl: number } };
 type MemoryView = {
   record: { wins: number; calls: number; cold: boolean };
   hot: { setup: { cadence: 1 | 5; direction: Direction; strikeDistance: number }; wins: number; calls: number; blobIds: string[] } | null;
@@ -130,6 +131,7 @@ export function App() {
   const [busy, setBusy] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [recap, setRecap] = useState('');
+  const [histories, setHistories] = useState<Record<string, History>>({});
 
   const crewId = new URLSearchParams(location.search).get('crew') ?? localStorage.getItem('nakama-crew');
 
@@ -190,6 +192,17 @@ export function App() {
       .then(setSuggestion)
       .catch((e) => setMessage(String(e.message ?? e)));
   }, [active?.id, owner, joined]);
+
+  useEffect(() => {
+    if (!crew || !status || status.memoryConfigured) return;
+    let cancelled = false;
+    for (const address of crew.members) {
+      api<History>(`/members/${address}/history`)
+        .then((value) => { if (!cancelled) setHistories((old) => ({ ...old, [address]: value })); })
+        .catch((error) => { if (!cancelled) setMessage(String(error.message ?? error)); });
+    }
+    return () => { cancelled = true; };
+  }, [crew?.id, crew?.members.join(','), status?.memoryConfigured]);
 
   const market = markets.find((m) => m.id === marketId);
   const secondsLeft = (ms: number) => Math.max(0, Math.ceil((ms - now) / 1000));
@@ -266,12 +279,14 @@ export function App() {
         if (!o.hit) break;
         streak++;
       }
-      return {
+      const history = !status?.memoryConfigured ? histories[a] : null;
+      return history ? { address: a, ...history.record, history } : {
         address: a,
         calls: orders.length,
         wins: orders.filter((o) => o.hit).length,
         pnl: orders.reduce((n, o) => n + (o.pnl ?? 0), 0),
         streak,
+        history: null,
       };
     }) ?? [];
 
@@ -428,7 +443,7 @@ export function App() {
               )}
               {suggestion?.member && (
                 <p className="muted small">
-                  Your record on crew calls {suggestion.member.record.wins}/{suggestion.member.record.calls} ·{' '}
+                  Your record from Walrus Memory {suggestion.member.record.wins}/{suggestion.member.record.calls} ·{' '}
                   {suggestion.member.streak} win streak
                 </p>
               )}
@@ -534,15 +549,26 @@ export function App() {
 
           <section className="card board-card">
             <h2>Crew board</h2>
+            {!status?.memoryConfigured && <p className="muted small">from on-chain history · recent queue events</p>}
             {board.length ? (
-              board.map((m) => (
-                <div className="board" key={m.address}>
-                  <span className="num">{short(m.address)}</span>
-                  <span className="streak">{m.streak > 0 ? `🔥 ${m.streak}` : ''}</span>
-                  <b className={`num ${m.pnl > 0 ? 'pos' : m.pnl < 0 ? 'neg' : ''}`}>{m.pnl.toFixed(2)} USDC</b>
-                  <small className="muted">
-                    {m.wins}/{m.calls}
-                  </small>
+              board.map((m) => !status?.memoryConfigured && !m.history ? (
+                <div className="board" key={m.address}><span className="num">{short(m.address)}</span><span className="muted">Loading history…</span></div>
+              ) : (
+                <div key={m.address}>
+                  <div className="board">
+                    <span className="num">{short(m.address)}</span>
+                    <span className="streak">{m.streak > 0 ? `🔥 ${m.streak}` : ''}</span>
+                    <b className={`num ${m.pnl > 0 ? 'pos' : m.pnl < 0 ? 'neg' : ''}`}>{m.pnl.toFixed(2)} USDC</b>
+                    <small className="muted">{m.wins}/{m.calls}</small>
+                  </div>
+                  {m.history && !m.history.complete && <p className="muted small">Recent history shown</p>}
+                  {m.history?.trades.slice(0, 2).map((trade) => (
+                    <div className="recalled" key={trade.digests.fill}>
+                      <span className="muted small">{trade.side ?? 'Predict'} {trade.strike == null ? '' : usd(trade.strike)} · {trade.result} · {trade.pnl?.toFixed(2) ?? 'pending'} USDC</span>
+                      <a href={`https://suiscan.xyz/mainnet/tx/${trade.digests.fill}`} target="_blank" rel="noreferrer">fill</a>
+                      {trade.digests.payout && <a href={`https://suiscan.xyz/mainnet/tx/${trade.digests.payout}`} target="_blank" rel="noreferrer">payout</a>}
+                    </div>
+                  ))}
                 </div>
               ))
             ) : (
