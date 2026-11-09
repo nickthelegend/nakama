@@ -28,7 +28,7 @@ export function memoryFor(namespace: string, env = process.env) {
     async remember(memory: Memory): Promise<string> {
       for (let attempt = 0; ; attempt++) {
         try {
-          return (await client.rememberAndWait(encodeMemory(memory))).blob_id;
+          return (await client.rememberAndWait(encodeMemory(memory), { timeoutMs: 300_000 })).blob_id;
         } catch (error) {
           if (attempt >= 3 || !String(error).includes('429')) throw error;
           await new Promise((resolve) => setTimeout(resolve, 2000 * 2 ** attempt));
