@@ -43,6 +43,7 @@ type Crew = {
   name: string;
   members: string[];
   calls: Call[];
+  readOnlyDemo?: boolean;
   playbook?: { best: string; worst: string; blobId?: string }[];
 };
 type Status = { rpc: string; memoryNetwork: string; mainnetWrites: boolean; setup: string[] };
@@ -94,6 +95,26 @@ function Recalled({ ids }: { ids: string[] | undefined }) {
 export function App() {
   const account = useCurrentAccount();
   const kit = useDAppKit();
+  const [viewAddresses, setViewAddresses] = useState<string[]>(() => {
+    const valid = (value: string) => /^0x[0-9a-f]{64}$/i.test(value);
+    const query = new URLSearchParams(location.search).getAll('as');
+    const saved = JSON.parse(localStorage.getItem('nakama-view-addresses') ?? '[]') as string[];
+    return [...new Set([...query, ...saved].filter(valid).map((value) => value.toLowerCase()))].slice(0, 4);
+  });
+  const [viewInput, setViewInput] = useState('');
+  const [selectedView, setSelectedView] = useState(() => new URLSearchParams(location.search).get('as')?.toLowerCase() ?? '');
+  const viewingAs = account ? null : viewAddresses.includes(selectedView) ? selectedView : viewAddresses[0] ?? null;
+  const owner = account?.address.toLowerCase() ?? viewingAs;
+
+  function selectView(value: string, addresses = viewAddresses) {
+    setViewAddresses(addresses);
+    setSelectedView(value);
+    localStorage.setItem('nakama-view-addresses', JSON.stringify(addresses));
+    const url = new URL(location.href);
+    url.searchParams.delete('as');
+    for (const address of [value, ...addresses.filter((a) => a !== value)]) url.searchParams.append('as', address);
+    history.replaceState(null, '', url);
+  }
   const [status, setStatus] = useState<Status | null>(null);
   const [crew, setCrew] = useState<Crew | null>(null);
   const [markets, setMarkets] = useState<Market[]>([]);
@@ -143,8 +164,8 @@ export function App() {
 
   const active = crew?.calls.filter((c) => c.status === 'live' && c.expiryMs > now).at(-1);
   const latest = crew?.calls.at(-1);
-  const joined = !!account && !!crew?.members.includes(account.address.toLowerCase());
-  const mineIn = !!active?.orders.some((o) => o.address === account?.address.toLowerCase());
+  const joined = !!owner && !!crew?.members.includes(owner);
+  const mineIn = !!active?.orders.some((o) => o.address === owner);
 
   useEffect(() => {
     if (!crew) return;
@@ -164,11 +185,11 @@ export function App() {
   }, [crew?.id]);
 
   useEffect(() => {
-    if (!active || !account || !joined) return;
-    api<MemoryView>(`/calls/${active.id}/suggestion?address=${account.address}`)
+    if (!active || !owner || !joined) return;
+    api<MemoryView>(`/calls/${active.id}/suggestion?address=${owner}`)
       .then(setSuggestion)
       .catch((e) => setMessage(String(e.message ?? e)));
-  }, [active?.id, account?.address, joined]);
+  }, [active?.id, owner, joined]);
 
   const market = markets.find((m) => m.id === marketId);
   const secondsLeft = (ms: number) => Math.max(0, Math.ceil((ms - now) / 1000));
@@ -187,22 +208,24 @@ export function App() {
 
   const create = () =>
     act(async () => {
-      const c = await api<Crew>('/crews', { name });
+      const c = await api<Crew>('/crews', { name, readOnlyDemo: !account });
       localStorage.setItem('nakama-crew', c.id);
-      location.href = `/?crew=${c.id}`;
+      const url = new URL(location.href);
+      url.searchParams.set('crew', c.id);
+      location.href = url.toString();
     });
 
   const join = () =>
     act(async () => {
-      if (!crew || !account) return;
-      setCrew(await api<Crew>(`/crews/${crew.id}/join`, { address: account.address }));
+      if (!crew || !owner) return;
+      setCrew(await api<Crew>(`/crews/${crew.id}/join`, { address: owner }));
     });
 
   const postCall = () =>
     act(async () => {
-      if (!crew || !account) return;
+      if (!crew || !owner) return;
       await api(`/crews/${crew.id}/calls`, {
-        caller: account.address,
+        caller: owner,
         marketId,
         direction,
         strike: Number(strike || ((direction === 'down' ? market?.suggestedStrikeDown : market?.suggestedStrike) ?? 0)),
@@ -215,22 +238,22 @@ export function App() {
 
   const oneTap = () =>
     act(async () => {
-      if (!active || !account || !crew) return;
+      if (!active || !owner || !crew) return;
       const p = await api<PlanResult>(`/calls/${active.id}/plan`, {
-        address: account.address,
+        address: owner,
         size: suggestion?.member?.size,
       });
       if (!p.quote.accepting) return setMessage(`Predict refused: ${p.quote.refusal ?? 'unknown'}`);
       if (p.dryRun?.status !== 'success')
         return setMessage(`Dry-run ${p.dryRun?.status ?? 'unavailable'}: ${p.dryRun?.error ?? 'fund your Predict account'}`);
-      if (!status?.mainnetWrites)
+      if (!status?.mainnetWrites || viewingAs || crew.readOnlyDemo)
         return setMessage(
-          `Dry-run success for ${short(account.address)}: ${p.quote.totalDebit.toFixed(2)} USDC including ${p.quote.orderFee.toFixed(2)} fee. No order submitted.`,
+          `Dry-run success for ${short(owner)}: ${p.quote.totalDebit.toFixed(2)} USDC including ${p.quote.orderFee.toFixed(2)} fee. No order submitted.`,
         );
       if (!p.transaction) throw Error('No transaction');
       const signed = await kit.signTransaction({ transaction: p.transaction });
       const sent = await api<{ digest: string }>('/execute', { bytes: signed.bytes, signature: signed.signature });
-      await api(`/calls/${active.id}/orders`, { address: account.address, digest: sent.digest });
+      await api(`/calls/${active.id}/orders`, { address: owner, digest: sent.digest });
       setMessage(`Order queued: ${sent.digest}`);
       setCrew(await api(`/crews/${crew.id}`));
     });
@@ -272,6 +295,26 @@ export function App() {
         <span>{status?.memoryNetwork ?? 'Walrus mainnet'}</span>
         <span className={status?.mainnetWrites ? 'live' : ''}>{status?.mainnetWrites ? 'REAL USDC' : 'DRY-RUN'}</span>
       </div>
+      {!account && (
+        <section className="card" aria-label="View as address">
+          {viewingAs && <p className="muted">Viewing as {short(viewingAs)} (read-only, not your wallet)</p>}
+          <div className="recalled">
+            {viewAddresses.map((a) => (
+              <button key={a} className="ghost-btn" aria-pressed={a === viewingAs} onClick={() => selectView(a)}>{short(a)}</button>
+            ))}
+          </div>
+          {viewAddresses.length < 4 && (
+            <div className="row">
+              <input aria-label="Sui address to view as" placeholder="0x… Sui address" value={viewInput} onChange={(e) => setViewInput(e.target.value)} />
+              <button className="cta" disabled={!/^0x[0-9a-f]{64}$/i.test(viewInput)} onClick={() => {
+                const a = viewInput.toLowerCase();
+                selectView(a, [...new Set([...viewAddresses, a])].slice(0, 4));
+                setViewInput('');
+              }}>View as</button>
+            </div>
+          )}
+        </section>
+      )}
       {status?.setup.length ? (
         <div className="setup">
           <b>Setup required</b> {status.setup.map((x) => x.replace('Setup required: ', '')).join(' · ')}
@@ -322,6 +365,7 @@ export function App() {
             <div>
               <p className="eyebrow">your crew · BTC/USD</p>
               <h1>{crew.name}</h1>
+              {crew.readOnlyDemo && <span className="joiner">preview crew</span>}
               <p className="muted">{crew.members.length} members</p>
             </div>
             <div className="crew-actions">
@@ -335,8 +379,8 @@ export function App() {
                 Copy invite
               </button>
               {!joined && (
-                <button className="cta" disabled={!account || busy} onClick={join}>
-                  {account ? 'Join with wallet' : 'Connect wallet to join'}
+                <button className="cta" disabled={!owner || busy} onClick={join}>
+                  {account ? 'Join with wallet' : viewingAs ? 'Join preview crew' : 'Enter an address to join'}
                 </button>
               )}
             </div>
@@ -376,7 +420,7 @@ export function App() {
                     "You're in"
                   ) : (
                     <>
-                      {status?.mainnetWrites ? 'Tap in' : 'Dry-run tap in'} · {size} USDC
+                      {status?.mainnetWrites && !viewingAs && !crew.readOnlyDemo ? 'Tap in' : 'Dry-run tap in'} · {size} USDC
                       {boosted && <span className="boost">×1.5 streak</span>}
                     </>
                   )}
