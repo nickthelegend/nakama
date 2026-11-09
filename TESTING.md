@@ -19,3 +19,12 @@ The UI walkthrough used `0xa9eb…c79c` and `0x96ed…ccd2` from [docs/DEMO-ADDR
 ## Round-2 judging pass (Nov 9 2026)
 - `pnpm test`: 5/5 passed; `pnpm -r build` passed.
 - Checked by hand against mainnet through the dev RPC: `GET /calls/:id/odds` returned 25.9% (in band) for a near strike and 0.005% (out of band) for a far one. `GET /odds` and `POST /crews/:id/calls` refused a $76,000 strike ("outside the 15–50% entry band"). At 375 px the composer shows the red hint, Post is disabled, and there is no horizontal overflow.
+
+## Nov 9 2026, 13:18 UTC: full UI flow on a LOCAL FORK with the demo signer
+Fork at checkpoint 343369910; server with `NAKAMA_ENV_FILE=.env.fork` and `DEMO_SIGNER`, so only fork-only keys are used. A headless browser drove the real UI:
+1. Connect "Demo signer (server-held key)". The badge read "LOCAL FORK of Sui mainnet · no real funds".
+2. Create crew "Fork Night" and join with the wallet.
+3. Fund card: deposit 3 USDC, signed and executed `EG48YgJkTTdHKV8ooQrrF3pNch5U7zZFgkCq1ZfLWaAn`.
+4. Post a 5-minute call and tap in for 2 USDC: quote accepted, signed, executed `DTmi7baj5yrJNvMonHnmQGQXZuDEHVdWXW3ZYx9hFucW`, and verified by `/calls/:id/orders`.
+These digests exist only on the local fork. Fills and settlement cannot happen there: there is no keeper and the clock is frozen.
+

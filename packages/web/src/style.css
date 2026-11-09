@@ -2509,3 +2509,12 @@ mysten-dapp-kit-connect-button::part(trigger) {
   box-shadow: 0 2px 14px #0008;
   text-align: center;
 }
+
+/* Fund your Predict account (member) */
+.fund-card { display: grid; gap: 10px; }
+.fund-card .fund-row { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; }
+.fund-card .field { display: grid; gap: 6px; flex: 1 1 140px; font-weight: 600; font-size: 13px; }
+.fund-card .field input { min-height: 44px; border-radius: 14px; border: 1.5px solid rgba(23, 20, 58, .14); padding: 0 14px; font: inherit; background: #fff; }
+.fund-card .check { display: flex; gap: 8px; align-items: center; font-size: 13px; min-height: 44px; }
+.fund-card .fund-fail { color: #d6334a; }
+.fund-card .fund-note { word-break: break-all; }

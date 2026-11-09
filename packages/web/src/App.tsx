@@ -48,7 +48,7 @@ type Crew = {
   readOnlyDemo?: boolean;
   playbook?: { best: string; worst: string; blobId?: string }[];
 };
-type Status = { rpc: string; memoryNetwork: string; memoryConfigured: boolean; mainnetWrites: boolean; setup: string[] };
+type Status = { rpc: string; memoryNetwork: string; memoryConfigured: boolean; mainnetWrites: boolean; setup: string[]; fork?: { label?: string; writes?: boolean } | null };
 type History = { complete: boolean; trades: { result: string; side: string | null; strike: number | null; pnl: number | null; digests: { fill: string; payout: string | null } }[]; record: { wins: number; calls: number; streak: number; pnl: number } };
 type MemoryView = {
   record: { wins: number; calls: number; cold: boolean };
@@ -96,6 +96,49 @@ function Recalled({ ids }: { ids: string[] | undefined }) {
   );
 }
 
+/** A member funds their own Predict account (the queue debits orders from it). Dry-run first; signing only when
+ *  the server allows writes (real USDC on mainnet, or the LOCAL FORK). */
+function FundCard({ owner, writesOn, fork, kit }: { owner: string; writesOn: boolean; fork: boolean; kit: ReturnType<typeof useDAppKit> }) {
+  const [amount, setAmount] = useState('3');
+  const [create, setCreate] = useState(true);
+  const [plan, setPlan] = useState<{ dryRun: { status: string; error: string | null }; transaction: string | null } | null>(null);
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+  const go = async (fn: () => Promise<void>) => { setBusy(true); setNote(''); try { await fn(); } catch (e) { setNote(String((e as Error).message ?? e).replace(/^Error:\s*/, '')); } finally { setBusy(false); } };
+  const dry = () => go(async () => { setPlan(await api('/fund', { address: owner, amount: Number(amount), create })); });
+  const sign = () => go(async () => {
+    if (!plan?.transaction) return;
+    const signed = await kit.signTransaction({ transaction: plan.transaction });
+    const sent = await api<{ digest: string }>('/execute', { bytes: signed.bytes, signature: signed.signature });
+    setPlan(null); setNote(`Deposited${fork ? ' on the local fork' : ''}: ${sent.digest}`);
+  });
+  return (
+    <section className="card fund-card" aria-label="Fund your Predict account">
+      <h2 className="viewas-title">Fund your Predict account</h2>
+      <p className="muted small">Calls debit your own Predict account. Create it and deposit in one signed transaction.</p>
+      <div className="fund-row">
+        <label className="field">
+          <span>Deposit (USDC)</span>
+          <input className="num" inputMode="decimal" value={amount} onChange={(e) => { setAmount(e.target.value); setPlan(null); }} aria-label="Deposit USDC" />
+        </label>
+        <label className="check"><input type="checkbox" checked={create} onChange={(e) => { setCreate(e.target.checked); setPlan(null); }} /> Create the account too</label>
+      </div>
+      <button className="btn btn-ink" disabled={busy || !(Number(amount) >= 1)} onClick={dry}>{busy && !plan ? 'Checking…' : 'Dry-run the deposit'}</button>
+      {plan && (
+        <p className={`muted small ${plan.dryRun.status === 'success' ? '' : 'fund-fail'}`}>
+          Dry-run {plan.dryRun.status}{plan.dryRun.error ? `: ${plan.dryRun.error}` : ''}
+        </p>
+      )}
+      {plan?.transaction && writesOn && (
+        <button className="btn btn-primary" disabled={busy} onClick={sign}>
+          {busy ? 'Signing…' : fork ? 'Sign and deposit (local fork, no real funds)' : 'Sign and deposit real USDC'}
+        </button>
+      )}
+      {note && <p className="muted small fund-note">{note}</p>}
+    </section>
+  );
+}
+
 export function App() {
   const account = useCurrentAccount();
   const wallet = useCurrentWallet();
@@ -121,6 +164,9 @@ export function App() {
     history.replaceState(null, '', url);
   }
   const [status, setStatus] = useState<Status | null>(null);
+  // On the LOCAL FORK, fork writes count as writes; labels say fork, never real funds.
+  const forkMode = Boolean(status?.fork);
+  const writesOn = Boolean(status?.mainnetWrites || (forkMode && status?.fork?.writes));
   const [crew, setCrew] = useState<Crew | null>(null);
   const [markets, setMarkets] = useState<Market[]>([]);
   const [composer, setComposer] = useState<MemoryView | null>(null);
@@ -317,7 +363,7 @@ export function App() {
       if (!p.quote.accepting) return setMessage(`Predict refused: ${p.quote.refusal ?? 'unknown'}`);
       if (p.dryRun?.status !== 'success')
         return setMessage(`Dry-run ${p.dryRun?.status ?? 'unavailable'}: ${p.dryRun?.error || 'the chain returned no reason'}`);
-      if (!status?.mainnetWrites || viewingAs || crew.readOnlyDemo)
+      if (!writesOn || viewingAs || crew.readOnlyDemo)
         return setTapResult({ address: owner, totalDebit: p.quote.totalDebit, orderFee: p.quote.orderFee });
       if (!p.transaction) throw Error('No transaction');
       const signed = await kit.signTransaction({ transaction: p.transaction });
@@ -363,7 +409,7 @@ export function App() {
 
   const size = Math.max(2, suggestion?.member?.size ?? 2);
   const boosted = suggestion?.member?.multiplier === 1.5;
-  const liveMode = !!status?.mainnetWrites && !viewingAs && !crew?.readOnlyDemo;
+  const liveMode = writesOn && !viewingAs && !crew?.readOnlyDemo;
   const suggestedStrike = (direction === 'down' ? market?.suggestedStrikeDown : market?.suggestedStrike) ?? null;
   const loadingCrew = !!crewId && !crew && !message;
   const crewFailed = !!crewId && !crew && !!message;
@@ -516,9 +562,9 @@ export function App() {
             <i />
             {status?.memoryNetwork ?? 'Walrus mainnet'}
           </span>
-          <span className={`pill ${status?.mainnetWrites ? 'pill-live' : 'pill-dry'}`}>
+          <span className={`pill ${writesOn ? 'pill-live' : 'pill-dry'}`}>
             <i />
-            {status?.mainnetWrites ? 'REAL USDC' : 'DRY-RUN'}
+            {writesOn ? (forkMode ? 'LOCAL FORK WRITES' : 'REAL USDC') : 'DRY-RUN'}
           </span>
         </div>
         <div className="connect">
@@ -727,6 +773,7 @@ export function App() {
                 </div>
               </div>
             </section>
+            {account && <FundCard owner={account.address.toLowerCase()} writesOn={writesOn} fork={forkMode} kit={kit} />}
             {viewAs}
             {setupNotice}
           </aside>
