@@ -1,5 +1,6 @@
-import { SuiJsonRpcClient, JsonRpcHTTPTransport } from '@mysten/sui/jsonRpc';
 import { SuiGrpcClient } from '@mysten/sui/grpc';
+import { GrpcTransport } from '@protobuf-ts/grpc-transport';
+import { ChannelCredentials } from '@grpc/grpc-js';
 import { getConfig, PredictClient, snapStrike, type MarketDescriptor } from '@mysten/deepbook-v3/predict';
 
 export const USDC = '0xdba34672e30cb065b1f93e3ab55318768fd6fef66c15942c9f7cb846e2f900e7::usdc::USDC';
@@ -7,12 +8,16 @@ export function chain(env = process.env) {
   if (!env.TATUM_API_KEY && !env.NAKAMA_DEV_SUI_RPC) throw new Error('Setup required: TATUM_API_KEY');
   const tatum = Boolean(env.TATUM_API_KEY);
   const rpcUrl = tatum
-    ? 'https://sui-mainnet.gateway.tatum.io'
+    ? 'https://sui-mainnet-grpc.gateway.tatum.io'
     : env.NAKAMA_DEV_SUI_RPC!;
   const client = tatum
-    ? new SuiJsonRpcClient({
+    ? new SuiGrpcClient({
         network: 'mainnet',
-        transport: new JsonRpcHTTPTransport({url: rpcUrl, rpc: {headers: {'x-api-key': env.TATUM_API_KEY!}}}),
+        transport: new GrpcTransport({
+          host: 'sui-mainnet-grpc.gateway.tatum.io:443',
+          channelCredentials: ChannelCredentials.createSsl(),
+          meta: { 'x-api-key': env.TATUM_API_KEY! },
+        }),
       })
     : new SuiGrpcClient({network: 'mainnet', baseUrl: rpcUrl});
   const sdk = new PredictClient({ network: 'mainnet', client });

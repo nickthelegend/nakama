@@ -1,13 +1,13 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { createDAppKit, DAppKitProvider } from '@mysten/dapp-kit-react';
-import { SuiJsonRpcClient, JsonRpcHTTPTransport } from '@mysten/sui/jsonRpc';
+import { SuiGrpcClient } from '@mysten/sui/grpc';
 import { App } from './App';
 import './style.css';
 
 const dAppKit = createDAppKit({
   networks: ['mainnet'],
-  createClient: () => new SuiJsonRpcClient({ network: 'mainnet', transport: new JsonRpcHTTPTransport({ url: '/api/rpc' }) }),
+  createClient: () => new SuiGrpcClient({ network: 'mainnet', baseUrl: 'https://fullnode.mainnet.sui.io:443' }),
 });
 
 createRoot(document.getElementById('root')!).render(
