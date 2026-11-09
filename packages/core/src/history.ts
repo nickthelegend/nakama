@@ -19,7 +19,7 @@ async function scan(ch: Chain, kind: string): Promise<Scan> {
     let before: string | undefined;
     let complete = false;
     for (let page = 0; page < MAX_PAGES; page++) {
-      const result = await ch.client.core.listEvents({
+      const result = await ch.events.core.listEvents({
         filter: { eventType: `${pkg}::queue_events::${kind}` },
         order: 'descending', limit: PAGE_LIMIT, before,
       });

@@ -56,7 +56,7 @@ async function eventDigest(ch:ReturnType<typeof chain>,kind:string,x:Call,o:Orde
   const pkg=ch.config.packages.predictOrdersV1??ch.config.packages.predictOrders;if(!pkg)throw Error('Predict queue package unavailable');
   let before:string|undefined;
   for(let page=0;page<20;page++){
-    const result=await ch.client.core.listEvents({filter:{eventType:`${pkg}::queue_events::${kind}`},limit:50,order:'descending',before});
+    const result=await ch.events.core.listEvents({filter:{eventType:`${pkg}::queue_events::${kind}`},limit:50,order:'descending',before});
     for(const event of result.events){
       const decoded=kind==='QueuedOrderFilled'?ch.predict.decode.queuedFills({events:[event]}):ch.predict.decode.openRecordPayouts({events:[event]});
       if(decoded.some(receipt=>String(receipt.recordId)===o.recordId&&receipt.marketId.toLowerCase()===x.marketId.toLowerCase()))return event.transactionDigest;
