@@ -1,5 +1,13 @@
 # Testing — 2026-11-09
 
+## Tatum native gRPC migration (Nov 9 2026)
+
+- `pnpm -r build` passed for core, server and web; `pnpm test` passed 5/5.
+- Started the server with the repository `.env` on port 8794. `GET /status` reported `rpc: "Tatum"` and `mainnetWrites: false`. Stopped the server by PID after the checks.
+- Tatum gRPC `getReferenceGasPrice` returned 100. `getTransaction` returned a historical transaction with events, effects and sender; the Predict SDK decoded one queued fill from it.
+- **Gateway blockers:** Tatum denied `LedgerService/ListEvents` with `PERMISSION_DENIED` (`gRPC method not allowed`). `GET /markets` and a 2 USDC `planMint` quote both failed because `TransactionExecutionService/SimulateTransaction` returned HTTP 429 / `UNAVAILABLE`. History and settlement scans therefore cannot complete through this Tatum gateway, and the required quote/dry-run smoke check did not pass. No transaction was submitted.
+- The public gRPC-web development override still returned live markets during the quote check. Sui JSON-RPC is deprecated, so the app no longer uses its client or proxy.
+
 - `pnpm build`: passed for core, server and web. Vite emitted its existing large-chunk warning; the build completed.
 - `pnpm test`: **5/5 passed**. Three policy tests remain green; two tests use saved, real mainnet queue event BCS payloads to verify trade assembly, account isolation, strike, P&L, and order/fill/payout digests.
 - `NAKAMA_DEV_SUI_RPC=https://fullnode.mainnet.sui.io:443 pnpm test:live`: passed. Read **3** active BTC markets in delayed mode, obtained a 2 USDC quote, and decoded **7** recent trades with fill and payout digests for a public demo address. No transaction was submitted.

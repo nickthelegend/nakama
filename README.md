@@ -26,7 +26,7 @@ The server stores crew state in gitignored `data/crews.json`. It writes membersh
 - `GET /members/:address/history` scans recent mainnet Predict queue fills and settlement payouts and returns decoded trades, transaction digests, and a wins/calls/streak record. The response includes scan counts and `complete`; `complete: false` means the bounded recent-event window is not an all-time record.
 - `GET /events` streams state notifications; `GET /markets` and `GET /status` expose live state and setup.
 
-The server holds no member private keys. The browser wallet client routes its chain RPC through the server's Tatum proxy so the API key remains server side. `NAKAMA_DEV_SUI_RPC` enables a visible gRPC development override when Tatum is absent. The override works for markets, history, quotes and plan simulation, and is labelled as a dev RPC. Default chain access fails closed with `Setup required: TATUM_API_KEY`.
+The server holds no member private keys. Its chain client uses Tatum's native Sui gRPC gateway with the API key kept server side; Sui JSON-RPC has been deprecated. The browser wallet client uses the public Sui gRPC-web fullnode for wallet operations. `NAKAMA_DEV_SUI_RPC` enables a visible gRPC development override when Tatum is absent. Default server chain access fails closed with `Setup required: TATUM_API_KEY`. Tatum must allow `LedgerService/ListEvents` and `TransactionExecutionService/SimulateTransaction` for history, watcher scans, markets and quotes to work; gateway permission or rate-limit errors are returned rather than treated as successful reads.
 
 
 ## Read-only walkthrough
