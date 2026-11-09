@@ -2499,6 +2499,7 @@ mysten-dapp-kit-connect-button::part(trigger) {
   left: 50%;
   bottom: 12px;
   transform: translateX(-50%);
+  max-width: calc(100vw - 20px);
   padding: 9px 15px;
   border: 2px solid #fff;
   border-radius: 8px;
