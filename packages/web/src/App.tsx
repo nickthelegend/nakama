@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useCurrentAccount, useDAppKit } from '@mysten/dapp-kit-react';
 import { ConnectButton } from '@mysten/dapp-kit-react/ui';
+import { Avatar, Icon, Ring, short, signed, usd } from './ui';
 
 type Direction = 'up' | 'down' | 'range';
 type Market = {
@@ -76,18 +77,18 @@ async function api<T>(path: string, body?: unknown): Promise<T> {
   return j as T;
 }
 
-const short = (s: string) => `${s.slice(0, 6)}…${s.slice(-4)}`;
 type Odds = { direction: string; probability: number | null; inBand: boolean | null; band: { min: number; max: number }; forward?: number; asOfMs?: number | null; rpc?: string };
-const usd = (n: number) => `$${n.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
+type TapResult = { address: string; totalDebit: number; orderFee: number };
+const pct = (p: number) => (p < 0.001 ? '<0.1' : (p * 100).toFixed(1));
 
 function Recalled({ ids }: { ids: string[] | undefined }) {
   if (!ids?.length) return null;
   return (
     <div className="recalled">
-      <b>RECALLED {ids.length}</b>
+      <span className="recalled-label">Recalled from Walrus · {ids.length}</span>
       {ids.slice(0, 4).map((id) => (
-        <a key={id} target="_blank" rel="noreferrer" href={`https://walruscan.com/mainnet/blob/${id}`}>
-          {short(id)}
+        <a key={id} className="link-pill" target="_blank" rel="noreferrer" href={`https://walruscan.com/mainnet/blob/${id}`}>
+          {short(id)} <Icon name="link" size={13} />
         </a>
       ))}
     </div>
@@ -130,7 +131,13 @@ export function App() {
   const [upper, setUpper] = useState('');
   const [message, setMessage] = useState('');
   // A result belongs to the member who tapped: clear it when the viewed member changes.
-  useEffect(() => setMessage(''), [owner]);
+  const [tapResult, setTapResult] = useState<TapResult | null>(null);
+  useEffect(() => {
+    setMessage('');
+    setTapResult(null);
+  }, [owner]);
+  const [copied, setCopied] = useState(false);
+  const [heroVideo, setHeroVideo] = useState<'loading' | 'ready' | 'failed'>('loading');
   const [busy, setBusy] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [recap, setRecap] = useState('');
@@ -258,6 +265,7 @@ export function App() {
   async function act(fn: () => Promise<void>) {
     setBusy(true);
     setMessage('');
+    setTapResult(null);
     try {
       await fn();
     } catch (e) {
@@ -308,9 +316,7 @@ export function App() {
       if (p.dryRun?.status !== 'success')
         return setMessage(`Dry-run ${p.dryRun?.status ?? 'unavailable'}: ${p.dryRun?.error ?? 'fund your Predict account'}`);
       if (!status?.mainnetWrites || viewingAs || crew.readOnlyDemo)
-        return setMessage(
-          `Dry-run success for ${short(owner)}: ${p.quote.totalDebit.toFixed(2)} USDC including ${p.quote.orderFee.toFixed(2)} fee. No order submitted.`,
-        );
+        return setTapResult({ address: owner, totalDebit: p.quote.totalDebit, orderFee: p.quote.orderFee });
       if (!p.transaction) throw Error('No transaction');
       const signed = await kit.signTransaction({ transaction: p.transaction });
       const sent = await api<{ digest: string }>('/execute', { bytes: signed.bytes, signature: signed.signature });
@@ -340,347 +346,698 @@ export function App() {
 
   const size = suggestion?.member?.size ?? 2;
   const boosted = suggestion?.member?.multiplier === 1.5;
+  const liveMode = !!status?.mainnetWrites && !viewingAs && !crew?.readOnlyDemo;
+  const suggestedStrike = (direction === 'down' ? market?.suggestedStrikeDown : market?.suggestedStrike) ?? null;
+  const loadingCrew = !!crewId && !crew && !message;
+  const crewFailed = !!crewId && !crew && !!message;
+
+  const dirWord = (d: Direction) => (d === 'up' ? 'above' : d === 'down' ? 'below' : 'between');
+
+  const addRow = (
+    <div className="row add-row">
+      <input
+        aria-label="Sui address to view as"
+        placeholder="0x… Sui address"
+        value={viewInput}
+        onChange={(e) => setViewInput(e.target.value)}
+      />
+      <button
+        className="btn btn-ink"
+        disabled={!/^0x[0-9a-f]{64}$/i.test(viewInput)}
+        onClick={() => {
+          const a = viewInput.toLowerCase();
+          selectView(a, [...new Set([...viewAddresses, a])].slice(0, 4));
+          setViewInput('');
+        }}
+      >
+        View as
+      </button>
+    </div>
+  );
+
+  const viewAs = !account && (
+    <section className="card viewas" aria-label="View as address">
+      <div className="viewas-head">
+        <span className="viewas-icon">
+          <Icon name="eye" size={18} />
+        </span>
+        <div>
+          <h2 className="viewas-title">{crew ? 'Switch member' : 'Preview without a wallet'}</h2>
+          {viewingAs ? (
+            <p className="viewing">
+              Viewing as <b className="num">{short(viewingAs)}</b> <span className="ro">read-only, not your wallet</span>
+            </p>
+          ) : (
+            <p className="muted small">Paste a public Sui address that trades on Predict to look around read-only. Nothing gets signed.</p>
+          )}
+        </div>
+      </div>
+      {viewAddresses.length > 0 && (
+        <div className="chips" role="group" aria-label="Switch member">
+          {viewAddresses.map((a) => (
+            <button key={a} className="ghost-btn chip" aria-pressed={a === viewingAs} onClick={() => selectView(a)}>
+              <Avatar address={a} size={26} />
+              <span className="num">{short(a)}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {viewAddresses.length < 4 &&
+        (crew && viewAddresses.length > 0 ? (
+          <details className="add-more">
+            <summary>
+              <Icon name="plus" size={16} /> Add another address
+            </summary>
+            {addRow}
+          </details>
+        ) : (
+          addRow
+        ))}
+    </section>
+  );
+
+  const setupNotice = status?.setup.length ? (
+    <section className="setup" aria-label="Setup required">
+      <span className="setup-icon">
+        <Icon name="key" size={18} />
+      </span>
+      <div>
+        <b>Setup required</b>
+        <p>
+          {status.setup.map((x) => (
+            <code key={x}>{x.replace('Setup required: ', '')}</code>
+          ))}
+        </p>
+        <p className="setup-note">Crew memory and the playbook go to Walrus Memory once these keys exist.</p>
+      </div>
+    </section>
+  ) : null;
+
+  const tapReceipt = tapResult ? (
+    <section className="toast receipt receipt-ok" role="status">
+      <div className="receipt-head">
+        <span className="receipt-badge">
+          <Icon name="check" size={22} />
+        </span>
+        <div>
+          <b>Dry-run success</b>
+          <span>
+            for <span className="num">{short(tapResult.address)}</span> · No order submitted.
+          </span>
+        </div>
+      </div>
+      <dl className="receipt-rows">
+        <div>
+          <dt>Total debit</dt>
+          <dd className="num">{tapResult.totalDebit.toFixed(2)} USDC</dd>
+        </div>
+        <div>
+          <dt>Includes fee</dt>
+          <dd className="num">{tapResult.orderFee.toFixed(2)} USDC</dd>
+        </div>
+        <div>
+          <dt>Order</dt>
+          <dd>Not submitted (dry run)</dd>
+        </div>
+      </dl>
+    </section>
+  ) : message ? (
+    <section
+      className={`toast ${/^(Predict refused|Dry-run (?!success))/.test(message) ? 'toast-bad' : /^(Order queued|Invite)/.test(message) ? 'toast-ok' : 'toast-info'}`}
+      role="status"
+    >
+      <Icon name={/^(Order queued|Invite)/.test(message) ? 'check' : 'alert'} size={18} />
+      <span>{message}</span>
+    </section>
+  ) : null;
 
   return (
     <div className="shell">
-      <header className="top">
-        <a className="brand" href="/">
-          <img src="/art/nakama-mark.webp" alt="" width={34} height={34} />
-          <span>
-            NAKAMA <em>仲間</em>
+      <header className="topbar">
+        <a className="brand" href="/" aria-label="Nakama home">
+          <img src="/art/nakama-mark.webp" alt="" width={40} height={40} />
+          <span className="brand-name">Nakama</span>
+          <span className="brand-jp" lang="ja">
+            仲間
           </span>
         </a>
-        <ConnectButton />
+        <div className="strip" aria-label="Connection status">
+          <span className={`pill ${status?.rpc?.startsWith('dev') ? 'pill-warn' : ''}`}>
+            <i />
+            {status?.rpc ?? 'checking chain'}
+          </span>
+          <span className="pill">
+            <i />
+            {status?.memoryNetwork ?? 'Walrus mainnet'}
+          </span>
+          <span className={`pill ${status?.mainnetWrites ? 'pill-live' : 'pill-dry'}`}>
+            <i />
+            {status?.mainnetWrites ? 'REAL USDC' : 'DRY-RUN'}
+          </span>
+        </div>
+        <div className="connect">
+          <ConnectButton />
+        </div>
       </header>
 
-      <div className="strip">
-        <span className={status?.rpc?.startsWith('dev') ? 'warn' : ''}>{status?.rpc ?? 'checking chain'}</span>
-        <span>{status?.memoryNetwork ?? 'Walrus mainnet'}</span>
-        <span className={status?.mainnetWrites ? 'live' : ''}>{status?.mainnetWrites ? 'REAL USDC' : 'DRY-RUN'}</span>
-      </div>
-      {!account && (
-        <section className="card" aria-label="View as address">
-          {viewingAs && <p className="muted">Viewing as {short(viewingAs)} (read-only, not your wallet)</p>}
-          <div className="recalled">
-            {viewAddresses.map((a) => (
-              <button key={a} className="ghost-btn" aria-pressed={a === viewingAs} onClick={() => selectView(a)}>{short(a)}</button>
-            ))}
-          </div>
-          {viewAddresses.length < 4 && (
-            <div className="row">
-              <input aria-label="Sui address to view as" placeholder="0x… Sui address" value={viewInput} onChange={(e) => setViewInput(e.target.value)} />
-              <button className="cta" disabled={!/^0x[0-9a-f]{64}$/i.test(viewInput)} onClick={() => {
-                const a = viewInput.toLowerCase();
-                selectView(a, [...new Set([...viewAddresses, a])].slice(0, 4));
-                setViewInput('');
-              }}>View as</button>
-            </div>
-          )}
-        </section>
-      )}
-      {status?.setup.length ? (
-        <div className="setup">
-          <b>Setup required</b> {status.setup.map((x) => x.replace('Setup required: ', '')).join(' · ')}
-        </div>
-      ) : null}
-      {message && (
-        <div className="toast" role="status">
-          {message}
-        </div>
-      )}
-
-      {!crew ? (
-        <>
+      {loadingCrew ? (
+        <main className="state-page" aria-busy="true">
+          <img src="/art/nakama-loading.webp" alt="" width={140} height={140} className="bob" />
+          <h1>Finding your crew…</h1>
+          <p className="muted">Loading the crew and live Predict markets.</p>
+        </main>
+      ) : crewFailed ? (
+        <main className="state-page">
+          <img src="/art/nakama-empty-2.webp" alt="" width={140} height={140} />
+          <h1>Couldn't open this crew</h1>
+          <p className="state-error" role="alert">
+            {message}
+          </p>
+          <button
+            className="btn btn-primary"
+            onClick={() => {
+              localStorage.removeItem('nakama-crew');
+              location.href = '/';
+            }}
+          >
+            Start a new crew
+          </button>
+        </main>
+      ) : !crew ? (
+        <main className="landing">
           <section className="hero">
-            <img
-              className="hero-art"
-              src="/art/nakama-hero.webp"
-              alt="Four friends on a rooftop at night point together at a glowing arrow in the sky"
-              width={1536}
-              height={1024}
-            />
             <div className="hero-copy">
+              <span className="kicker">
+                <Icon name="spark" size={15} /> Live BTC calls · DeepBook Predict on Sui
+              </span>
               <h1>
                 Call it together.
                 <br />
                 <span>Win together.</span>
               </h1>
-              <p>
-                Your crew posts live BTC calls on DeepBook Predict. Everyone joins with one tap and signs their own
-                order. The crew remembers which setups work, so every call gets sharper.
+              <p className="lede">
+                Someone in your crew spots a move and posts a 1- or 5-minute BTC call. Everyone gets one tap to join
+                before it closes, and each friend signs their own order.
               </p>
-            </div>
-          </section>
-          <section className="card start">
-            <h2>Start your crew</h2>
-            <p className="muted">Pick a name, then share the invite link with your friends.</p>
-            <div className="row">
-              <input placeholder="Crew name" value={name} onChange={(e) => setName(e.target.value)} />
-              <button className="cta" disabled={busy || !name.trim()} onClick={create}>
-                Create crew
-              </button>
-            </div>
-          </section>
-        </>
-      ) : (
-        <main className="grid">
-          <section className="card crew-head">
-            <div>
-              <p className="eyebrow">your crew · BTC/USD</p>
-              <h1>{crew.name}</h1>
-              {crew.readOnlyDemo && <span className="joiner">preview crew</span>}
-              <p className="muted">{crew.members.length} {crew.members.length === 1 ? "member" : "members"}</p>
-            </div>
-            <div className="crew-actions">
-              <button
-                className="ghost-btn"
-                onClick={() => {
-                  void navigator.clipboard.writeText(`${location.origin}/?crew=${crew.id}`);
-                  setMessage('Invite link copied');
-                }}
-              >
-                Copy invite
-              </button>
-              {!joined && (
-                <button className="cta" disabled={!owner || busy} onClick={join}>
-                  {account ? 'Join with wallet' : viewingAs ? 'Join preview crew' : 'Enter an address to join'}
-                </button>
-              )}
-            </div>
-          </section>
-
-          {active ? (
-            <section className="card call">
-              <div className="call-top">
-                <span className="tag">LIVE · {active.setup.cadence}m</span>
-                <span className="timer num">{secondsLeft(active.expiryMs)}s</span>
-              </div>
-              <h2 className={`call-dir dir-${active.setup.direction}`}>
-                {active.setup.direction === 'range'
-                  ? `BTC between ${usd(active.strike)}–${usd(active.upper ?? active.strike)}`
-                  : `BTC ${active.setup.direction === 'up' ? 'above' : 'below'} ${usd(active.strike)}`}
-              </h2>
-              <p className="why">“{active.why}”</p>
-              <p className="muted small">
-                Called by {short(active.caller)}
-                {status?.memoryConfigured && <> · crew is {active.crewRecord?.wins ?? 0}/{active.crewRecord?.calls ?? 0} on this setup {active.crewRecord?.cold && <b className="cold">COLD SETUP</b>}</>}
-              </p>
-              <Recalled ids={active.recalled} />
-              {odds?.probability != null && (
-                <div className={`odds ${outOfBand ? 'odds-out' : 'odds-in'}`} aria-live="polite">
-                  <div className="odds-bar" aria-hidden="true">
-                    <span className="odds-band" style={{ left: `${odds.band.min * 100}%`, width: `${(odds.band.max - odds.band.min) * 100}%` }} />
-                    <span className="odds-dot" style={{ left: `${Math.min(100, Math.max(0, odds.probability * 100))}%` }} />
-                  </div>
-                  <p className="small">
-                    <b className="num">{odds.probability < 0.001 ? '<0.1' : (odds.probability * 100).toFixed(1)}%</b> Predict odds now
-                    {outOfBand
-                      ? ` · outside the ${odds.band.min * 100}–${odds.band.max * 100}% entry band, so Predict won't take new taps on this strike`
-                      : ` · inside the ${odds.band.min * 100}–${odds.band.max * 100}% entry band`}
-                  </p>
+              <section className="card start" aria-label="Start your crew">
+                <h2>Start your crew</h2>
+                <p className="muted small">Pick a name, then share the invite link with your friends.</p>
+                <div className="row">
+                  <input placeholder="Crew name" aria-label="Crew name" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} />
+                  <button className="btn btn-primary" disabled={busy || !name.trim()} onClick={create}>
+                    Create crew
+                  </button>
                 </div>
-              )}
-              {oddsError && <p className="muted small">Live odds unavailable: {oddsError}</p>}
-              <div className="joiners">
-                {active.orders.length
-                  ? active.orders.map((o) => (
-                      <span key={o.digest} className="joiner">
-                        {short(o.address)} · {o.size} USDC · {o.status}
-                      </span>
-                    ))
-                  : 'Nobody in yet'}
-              </div>
-              {joined && (
-                <button className="tap" disabled={busy || mineIn || outOfBand} onClick={oneTap}>
-                  {busy ? (
-                    'Checking Predict…'
-                  ) : mineIn ? (
-                    "You're in"
-                  ) : outOfBand ? (
-                    'Entry closed'
-                  ) : (
-                    <>
-                      {status?.mainnetWrites && !viewingAs && !crew.readOnlyDemo ? 'Tap in' : 'Dry-run tap in'} · {size} USDC
-                      {boosted && <span className="boost">×1.5 streak</span>}
-                    </>
-                  )}
-                </button>
-              )}
-              {status?.memoryConfigured && suggestion?.member && (
-                <p className="muted small">
-                  Your record from Walrus Memory {suggestion.member.record.wins}/{suggestion.member.record.calls} ·{' '}
-                  {suggestion.member.streak} win streak
-                </p>
-              )}
-            </section>
-          ) : (
-            <section className="card call empty-call">
-              <img src="/art/nakama-empty-1.webp" alt="" width={120} height={120} />
-              <div>
-                <h2>No live call</h2>
-                <p className="muted">Post one below. Your crew gets one tap to join before the market closes.</p>
-              </div>
-            </section>
-          )}
-
-          <section className="card composer">
-            <h2>Make a call</h2>
-            {composer?.hot && (
-              <div className="hot">
-                <b>🔥 Crew’s hot setup</b> {composer.hot.setup.cadence}m {composer.hot.setup.direction.toUpperCase()}, won{' '}
-                {composer.hot.wins} of {composer.hot.calls}
-                <Recalled ids={composer.hot.blobIds} />
-              </div>
-            )}
-            <label>
-              Market
-              <select value={marketId} onChange={(e) => setMarketId(e.target.value)}>
-                {openMarkets.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    BTC {m.cadence} min · closes in {secondsLeft(m.expiryMs)}s
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div className="dirs" role="radiogroup" aria-label="Direction">
-              {(['up', 'down', 'range'] as const).map((d) => (
-                <button key={d} role="radio" aria-checked={direction === d} className={`dir dir-${d} ${direction === d ? 'on' : ''}`} onClick={() => setDirection(d)}>
-                  {d === 'up' ? 'Above ↑' : d === 'down' ? 'Below ↓' : 'Range ↔'}
-                </button>
-              ))}
+                {!account && (
+                  <p className="hint">
+                    {viewingAs
+                      ? 'No wallet connected, so this will be a read-only preview crew.'
+                      : 'No wallet connected: connect one, or preview as a public address below.'}
+                  </p>
+                )}
+              </section>
+              {tapReceipt}
+              {viewAs}
             </div>
-            <div className="row">
-              <label>
-                Strike (USD)
-                <input
-                  className="num"
-                  type="number"
-                  step="1"
-                  value={strike}
-                  placeholder={String((direction === 'down' ? market?.suggestedStrikeDown : market?.suggestedStrike) ?? '')}
-                  onChange={(e) => setStrike(e.target.value)}
+            <figure className="hero-art">
+              <img
+                className="hero-img"
+                src="/art/nakama-hero.webp"
+                alt="Four friends on a rooftop at night point together at a glowing arrow in the sky"
+                width={1536}
+                height={1024}
+              />
+              {/* Optional loop over the poster; if the file is missing or motion is reduced, the poster image stays. */}
+              {heroVideo !== 'failed' && (
+                <video
+                  className={`hero-video ${heroVideo === 'ready' ? 'ready' : ''}`}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  poster="/art/nakama-hero.webp"
+                  src="/art/nakama-hero-loop.mp4"
+                  aria-hidden="true"
+                  onError={() => setHeroVideo('failed')}
+                  onLoadedData={() => setHeroVideo('ready')}
                 />
-              </label>
-              {direction === 'range' && (
-                <label>
-                  Upper (USD)
-                  <input className="num" type="number" step="1" value={upper} onChange={(e) => setUpper(e.target.value)} />
-                </label>
               )}
-            </div>
-            {draftOdds?.probability != null && (
-              <p className={`odds-hint small ${draftOutOfBand ? 'odds-hint-out' : ''}`} aria-live="polite">
-                Predict odds at {usd(Number(strikeValue))}:{' '}
-                <b className="num">{draftOdds.probability < 0.001 ? '<0.1' : (draftOdds.probability * 100).toFixed(1)}%</b>
-                {draftOutOfBand
-                  ? ` · outside the ${draftOdds.band.min * 100}–${draftOdds.band.max * 100}% entry band, so nobody could join. Move it nearer the money.`
-                  : ` · inside the entry band, the crew can join`}
-              </p>
-            )}
-            <label>
-              Why
-              <input maxLength={280} value={why} onChange={(e) => setWhy(e.target.value)} placeholder="What do you see?" />
-            </label>
-            {status?.memoryConfigured && <p className="muted small">Crew record on this setup: {composer?.record.wins ?? 0}/{composer?.record.calls ?? 0}</p>}
-            <button className="cta" disabled={!joined || busy || !marketId || !why.trim() || draftOutOfBand} onClick={postCall}>
-              Post call to the crew
-            </button>
+              <img className="sticker sticker-a" src="/art/nakama-object-1.webp" alt="" width={150} height={150} />
+              <img className="sticker sticker-b" src="/art/nakama-object-2.webp" alt="" width={130} height={130} />
+              <figcaption>
+                <span className="bubble bubble-call">
+                  <Icon name="up" size={16} /> “BTC above the strike, 5 min. Who's in?”
+                </span>
+                <span className="bubble bubble-reply">One tap each. Everyone signs their own.</span>
+              </figcaption>
+            </figure>
           </section>
+          {setupNotice}
 
-          {latest?.status === 'settled' && (
-            <section className="card reveal">
-              <h2>Settled</h2>
-              <p className="big">
-                {latest.orders.filter((o) => o.hit).length} won · {latest.orders.length} joined
-              </p>
-              {latest.orders.map((o) => (
-                <div key={o.digest} className={`result ${o.hit ? 'win' : 'loss'}`}>
-                  <span>{short(o.address)}</span>
-                  <b>{o.hit ? 'WIN' : 'LOSS'}</b>
-                  <span className="num">{o.pnl?.toFixed(2) ?? 'pending'} USDC</span>
-                  <span className="links">
-                    <a href={`https://suiscan.xyz/mainnet/tx/${o.digest}`} target="_blank" rel="noreferrer">
-                      order
-                    </a>
-                    {o.fillDigest && (
-                      <a href={`https://suiscan.xyz/mainnet/tx/${o.fillDigest}`} target="_blank" rel="noreferrer">
-                        fill
-                      </a>
-                    )}
-                    {o.payoutDigest && (
-                      <a href={`https://suiscan.xyz/mainnet/tx/${o.payoutDigest}`} target="_blank" rel="noreferrer">
-                        payout
-                      </a>
-                    )}
+          <section className="steps" aria-label="How a crew call works">
+            {[
+              ['nakama-feature-2', '1', 'Someone calls it', 'Pick a live BTC market, above or below a strike, and say why. Predict odds show under the strike before you post.'],
+              ['nakama-feature-1', '2', 'The crew taps in', 'Each friend gets one tap before the market closes. Every order is quoted and simulated first, then signed in that member’s own wallet.'],
+              ['nakama-feature-3', '3', 'The board keeps score', 'Each member’s real Predict record from Sui mainnet: wins, P&L in USDC and streaks, with Suiscan links for every fill and payout.'],
+            ].map(([art, n, title, body]) => (
+              <article className="step card" key={n}>
+                <img src={`/art/${art}.webp`} alt="" width={1024} height={1024} loading="lazy" />
+                <div>
+                  <span className="step-n">{n}</span>
+                  <h3>{title}</h3>
+                  <p className="muted">{body}</p>
+                </div>
+              </article>
+            ))}
+          </section>
+        </main>
+      ) : (
+        <main className="crew-layout">
+          <aside className="rail">
+            <section className="card crew-head">
+              <div className="crew-banner">
+                <img src="/art/nakama-banner.webp" alt="" width={1536} height={512} />
+              </div>
+              <div className="crew-head-body">
+                <p className="eyebrow">Your crew · BTC/USD</p>
+                <h1>{crew.name}</h1>
+                <div className="crew-meta">
+                  {crew.readOnlyDemo && <span className="badge-preview">preview crew</span>}
+                  <span>
+                    {crew.members.length} {crew.members.length === 1 ? 'member' : 'members'}
                   </span>
                 </div>
-              ))}
-              <Recalled ids={latest.memoryBlobId ? [latest.memoryBlobId] : []} />
-            </section>
-          )}
-
-          <section className="card board-card">
-            <h2>Crew board</h2>
-            {!status?.memoryConfigured && <p className="muted small">from on-chain history · recent queue events</p>}
-            {board.length ? (
-              board.map((m) => !status?.memoryConfigured && !m.history ? (
-                <div className="board" key={m.address}><span className="num">{short(m.address)}</span><span className="muted">Loading history…</span></div>
-              ) : (
-                <div key={m.address}>
-                  <div className="board">
-                    <span className="num">{short(m.address)}</span>
-                    <span className="streak">{m.streak > 0 ? `🔥 ${m.streak}` : ''}</span>
-                    <b className={`num ${m.pnl > 0 ? 'pos' : m.pnl < 0 ? 'neg' : ''}`}>{m.pnl.toFixed(2)} USDC</b>
-                    <small className="muted">{m.wins}/{m.calls}</small>
+                {crew.members.length > 0 && (
+                  <div className="facepile" aria-label="Members">
+                    {crew.members.map((m) => (
+                      <span key={m} title={m}>
+                        <Avatar address={m} size={36} ring />
+                      </span>
+                    ))}
                   </div>
-                  {m.history && !m.history.complete && <p className="muted small">Recent history shown</p>}
-                  {m.history?.trades.slice(0, 2).map((trade) => (
-                    <div className="recalled" key={trade.digests.fill}>
-                      <span className="muted small">{trade.side ?? 'Predict'} {trade.strike == null ? '' : usd(trade.strike)} · {trade.result} · {trade.pnl?.toFixed(2) ?? 'pending'} USDC</span>
-                      <a href={`https://suiscan.xyz/mainnet/tx/${trade.digests.fill}`} target="_blank" rel="noreferrer">fill</a>
-                      {trade.digests.payout && <a href={`https://suiscan.xyz/mainnet/tx/${trade.digests.payout}`} target="_blank" rel="noreferrer">payout</a>}
+                )}
+                <div className="crew-actions">
+                  <button
+                    className="ghost-btn btn-soft"
+                    onClick={() => {
+                      void navigator.clipboard.writeText(`${location.origin}/?crew=${crew.id}`);
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    }}
+                  >
+                    <Icon name={copied ? 'check' : 'copy'} size={16} /> {copied ? 'Link copied' : 'Copy invite'}
+                  </button>
+                  {!joined && (
+                    <button className="btn btn-primary" disabled={!owner || busy} onClick={join}>
+                      <Icon name="plus" size={16} />
+                      {account ? 'Join with wallet' : viewingAs ? 'Join preview crew' : 'Enter an address to join'}
+                    </button>
+                  )}
+                  {joined && (
+                    <span className="joined-tag">
+                      <Icon name="check" size={15} /> {account ? "You're in this crew" : 'In the crew'}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </section>
+            {viewAs}
+            {setupNotice}
+          </aside>
+
+          <section className="thread" aria-label="Crew calls">
+            {active ? (
+              <article className={`card call ${outOfBand ? 'call-closed' : ''}`} key={active.id}>
+                <header className="call-head">
+                  <Avatar address={active.caller} size={44} />
+                  <div className="call-who">
+                    <b className="num">{short(active.caller)}</b>
+                    {active.caller === owner && <span className="you">you</span>}
+                    <span className="muted small">called it</span>
+                  </div>
+                  <span className="live-pill">
+                    <i /> Live · {active.setup.cadence} min
+                  </span>
+                </header>
+                <div className="call-body">
+                  <div className="call-main">
+                    <p className="call-kicker">BTC/USD at market close</p>
+                    <h2 className={`call-dir dir-${active.setup.direction}`}>
+                      <span className="dir-badge">
+                        <Icon name={active.setup.direction} size={22} />
+                      </span>
+                      <span>
+                        {active.setup.direction === 'range'
+                          ? `BTC between ${usd(active.strike)}–${usd(active.upper ?? active.strike)}`
+                          : `BTC ${dirWord(active.setup.direction)} ${usd(active.strike)}`}
+                      </span>
+                    </h2>
+                    {active.why && <p className="why">“{active.why}”</p>}
+                  </div>
+                  <Ring seconds={secondsLeft(active.expiryMs)} total={active.setup.cadence * 60} />
+                </div>
+                {status?.memoryConfigured && (
+                  <p className="muted small">
+                    Crew is {active.crewRecord?.wins ?? 0}/{active.crewRecord?.calls ?? 0} on this setup{' '}
+                    {active.crewRecord?.cold && <b className="cold">COLD SETUP</b>}
+                  </p>
+                )}
+                <Recalled ids={active.recalled} />
+                {odds?.probability != null ? (
+                  <div className={`odds ${outOfBand ? 'odds-out' : 'odds-in'}`} aria-live="polite">
+                    <div className="odds-top">
+                      <span className="odds-label">Predict odds now</span>
+                      <b className="odds-value num">{pct(odds.probability)}%</b>
                     </div>
+                    <div className="odds-bar" aria-hidden="true">
+                      <span className="odds-band" style={{ left: `${odds.band.min * 100}%`, width: `${(odds.band.max - odds.band.min) * 100}%` }} />
+                      <span className="odds-dot" style={{ left: `${Math.min(100, Math.max(0, odds.probability * 100))}%` }} />
+                    </div>
+                    <div className="odds-scale" aria-hidden="true">
+                      <span>0%</span>
+                      <span style={{ left: `${odds.band.min * 100}%` }}>{odds.band.min * 100}%</span>
+                      <span style={{ left: `${odds.band.max * 100}%` }}>{odds.band.max * 100}%</span>
+                      <span>100%</span>
+                    </div>
+                    <p className="odds-note">
+                      {pct(odds.probability)}% Predict odds now
+                      {outOfBand
+                        ? ` · outside the ${odds.band.min * 100}–${odds.band.max * 100}% entry band, so Predict won't take new taps on this strike`
+                        : ` · inside the ${odds.band.min * 100}–${odds.band.max * 100}% entry band`}
+                    </p>
+                  </div>
+                ) : !oddsError && active.setup.direction !== 'range' ? (
+                  <div className="odds-loading" aria-busy="true">
+                    <span className="skeleton" /> Reading Predict odds…
+                  </div>
+                ) : null}
+                {oddsError && <p className="state-error small">Live odds unavailable: {oddsError}</p>}
+                <div className="joiners">
+                  <span className="joiners-label">In on this call</span>
+                  {active.orders.length ? (
+                    active.orders.map((o) => (
+                      <span key={o.digest} className="joiner">
+                        <Avatar address={o.address} size={22} />
+                        <span className="num">{short(o.address)}</span> · {o.size} USDC · {o.status}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="muted small">Nobody in yet</span>
+                  )}
+                </div>
+                {joined ? (
+                  <button className={`tap ${outOfBand ? 'tap-closed' : ''}`} disabled={busy || mineIn || outOfBand} onClick={oneTap}>
+                    {busy ? (
+                      <>
+                        <span className="spinner" /> Checking Predict…
+                      </>
+                    ) : mineIn ? (
+                      <>
+                        <Icon name="check" size={20} /> You're in
+                      </>
+                    ) : outOfBand ? (
+                      <>
+                        <Icon name="lock" size={20} /> Entry closed
+                      </>
+                    ) : (
+                      <>
+                        {liveMode ? 'Tap in' : 'Dry-run tap in'} · {size} USDC
+                        {boosted && <span className="boost">×1.5 streak</span>}
+                      </>
+                    )}
+                  </button>
+                ) : (
+                  <p className="hint">Join the crew to tap in on this call.</p>
+                )}
+                {status?.memoryConfigured && suggestion?.member && (
+                  <p className="muted small">
+                    Your record from Walrus Memory {suggestion.member.record.wins}/{suggestion.member.record.calls} · {suggestion.member.streak} win
+                    streak
+                  </p>
+                )}
+              </article>
+            ) : (
+              <section className="card call-empty">
+                <img src="/art/nakama-empty-1.webp" alt="" width={140} height={140} />
+                <div>
+                  <h2>No live call</h2>
+                  <p className="muted">Post one below. Your crew gets one tap to join before the market closes.</p>
+                  <a className="empty-cta" href="#make-a-call">
+                    Make a call <Icon name="down" size={16} />
+                  </a>
+                </div>
+              </section>
+            )}
+
+            {tapReceipt}
+
+            {latest?.status === 'settled' && (
+              <section className="card reveal">
+                <header className="reveal-head">
+                  <h2>Settled</h2>
+                  <p className="big">
+                    {latest.orders.filter((o) => o.hit).length} won · {latest.orders.length} joined
+                  </p>
+                </header>
+                {latest.orders.map((o) => (
+                  <div key={o.digest} className={`result ${o.hit ? 'win' : 'loss'}`}>
+                    <Avatar address={o.address} size={32} />
+                    <span className="num">{short(o.address)}</span>
+                    <b className="result-tag">{o.hit ? 'WIN' : 'LOSS'}</b>
+                    <span className="num">{o.pnl == null ? 'pending' : `${signed(o.pnl)} USDC`}</span>
+                    <span className="links">
+                      <a className="link-pill" href={`https://suiscan.xyz/mainnet/tx/${o.digest}`} target="_blank" rel="noreferrer">
+                        order <Icon name="link" size={13} />
+                      </a>
+                      {o.fillDigest && (
+                        <a className="link-pill" href={`https://suiscan.xyz/mainnet/tx/${o.fillDigest}`} target="_blank" rel="noreferrer">
+                          fill <Icon name="link" size={13} />
+                        </a>
+                      )}
+                      {o.payoutDigest && (
+                        <a className="link-pill" href={`https://suiscan.xyz/mainnet/tx/${o.payoutDigest}`} target="_blank" rel="noreferrer">
+                          payout <Icon name="link" size={13} />
+                        </a>
+                      )}
+                    </span>
+                  </div>
+                ))}
+                <Recalled ids={latest.memoryBlobId ? [latest.memoryBlobId] : []} />
+              </section>
+            )}
+
+            <section className="card composer" id="make-a-call" aria-label="Make a call">
+              <header className="composer-head">
+                {owner ? <Avatar address={owner} size={40} /> : <span className="avatar avatar-empty" aria-hidden="true" />}
+                <div>
+                  <h2>Make a call</h2>
+                  <p className="muted small">Your crew gets one tap to join before the market closes.</p>
+                </div>
+              </header>
+              {composer?.hot && (
+                <div className="hot">
+                  <b>Crew’s hot setup</b> {composer.hot.setup.cadence}m {composer.hot.setup.direction.toUpperCase()}, won {composer.hot.wins} of{' '}
+                  {composer.hot.calls}
+                  <Recalled ids={composer.hot.blobIds} />
+                </div>
+              )}
+              <label className="field">
+                <span>Market</span>
+                <select value={marketId} onChange={(e) => setMarketId(e.target.value)}>
+                  {openMarkets.length === 0 && <option value="">No BTC market open right now</option>}
+                  {openMarkets.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      BTC {m.cadence} min · closes in {secondsLeft(m.expiryMs)}s
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="field">
+                <span id="dir-label">Direction</span>
+                <div className="dirs" role="radiogroup" aria-labelledby="dir-label">
+                  {(['up', 'down', 'range'] as const).map((d) => (
+                    <button
+                      key={d}
+                      role="radio"
+                      aria-checked={direction === d}
+                      className={`dir dir-${d} ${direction === d ? 'on' : ''}`}
+                      onClick={() => setDirection(d)}
+                    >
+                      {d === 'up' ? 'Above ↑' : d === 'down' ? 'Below ↓' : 'Range ↔'}
+                    </button>
                   ))}
                 </div>
-              ))
-            ) : (
-              <p className="muted">No members yet.</p>
-            )}
-            <h3>Playbook</h3>
-            {crew.playbook?.length ? (
-              crew.playbook.map((p, i) => (
-                <div key={i} className="play">
-                  <p>
-                    <b>Works:</b> {p.best}
-                  </p>
-                  <p>
-                    <b>Weak:</b> {p.worst}
-                  </p>
-                  <Recalled ids={p.blobId ? [p.blobId] : []} />
-                </div>
-              ))
-            ) : (
-              <p className="muted small">The playbook is written to Walrus every five settled calls.</p>
-            )}
-            <button
-              className="ghost-btn"
-              onClick={() =>
-                void act(async () => {
-                  const r = await api<{ text: string }>(`/crews/${crew.id}/recap`);
-                  setRecap(r.text);
-                })
-              }
-            >
-              Recap from crew memory
-            </button>
-            {recap && <p className="recap">{recap}</p>}
+              </div>
+              <div className={`strike-row ${direction === 'range' ? 'two' : ''}`}>
+                <label className="field">
+                  <span>Strike (USD)</span>
+                  <input
+                    className="num"
+                    type="number"
+                    step="1"
+                    inputMode="numeric"
+                    value={strike}
+                    placeholder={String(suggestedStrike ?? '')}
+                    onChange={(e) => setStrike(e.target.value)}
+                  />
+                </label>
+                {direction === 'range' && (
+                  <label className="field">
+                    <span>Upper (USD)</span>
+                    <input className="num" type="number" step="1" inputMode="numeric" value={upper} onChange={(e) => setUpper(e.target.value)} />
+                  </label>
+                )}
+              </div>
+              {!strike && suggestedStrike != null && <p className="field-note">Suggested strike from the live forward: {usd(suggestedStrike)}</p>}
+              {draftOdds?.probability != null ? (
+                <p className={`odds-hint ${draftOutOfBand ? 'odds-hint-out' : 'odds-hint-in'}`} aria-live="polite">
+                  <Icon name={draftOutOfBand ? 'alert' : 'check'} size={17} />
+                  <span>
+                    Predict odds at {usd(Number(strikeValue))}: <b className="num">{pct(draftOdds.probability)}%</b>
+                    {draftOutOfBand
+                      ? ` · outside the ${draftOdds.band.min * 100}–${draftOdds.band.max * 100}% entry band, so nobody could join. Move it nearer the money.`
+                      : ` · inside the entry band, the crew can join`}
+                  </span>
+                </p>
+              ) : direction !== 'range' && Number(strikeValue) > 0 ? (
+                <p className="odds-pending" aria-busy="true">
+                  <span className="skeleton" /> Reading Predict odds…
+                </p>
+              ) : null}
+              <label className="field">
+                <span>Why</span>
+                <input maxLength={280} value={why} onChange={(e) => setWhy(e.target.value)} placeholder="What do you see?" />
+              </label>
+              {status?.memoryConfigured && (
+                <p className="muted small">
+                  Crew record on this setup: {composer?.record.wins ?? 0}/{composer?.record.calls ?? 0}
+                </p>
+              )}
+              <button className="btn btn-primary btn-post" disabled={!joined || busy || !marketId || !why.trim() || draftOutOfBand} onClick={postCall}>
+                Post call to the crew
+              </button>
+              {!joined && <p className="hint">Join the crew to post a call.</p>}
+            </section>
           </section>
+
+          <aside className="board-col">
+            <section className="card board-card" aria-label="Crew board">
+              <header className="board-head">
+                <img src="/art/nakama-object-3.webp" alt="" width={56} height={56} />
+                <div>
+                  <h2>Crew board</h2>
+                  <p className="muted small">{status?.memoryConfigured ? 'from Walrus Memory' : 'from on-chain history · recent queue events'}</p>
+                </div>
+              </header>
+              {board.length ? (
+                <ol className="members">
+                  {board.map((m) =>
+                    !status?.memoryConfigured && !m.history ? (
+                      <li className="member member-loading" key={m.address} aria-busy="true">
+                        <div className="member-top">
+                          <Avatar address={m.address} size={40} />
+                          <span className="num">{short(m.address)}</span>
+                          <span className="muted small">Loading history…</span>
+                        </div>
+                        <span className="skeleton skeleton-wide" />
+                      </li>
+                    ) : (
+                      <li className="member" key={m.address}>
+                        <div className="member-top">
+                          <Avatar address={m.address} size={40} />
+                          <div className="member-id">
+                            <span className="num">{short(m.address)}</span>
+                            {m.address === owner && <span className="you">viewing</span>}
+                          </div>
+                          <div className="member-pnl">
+                            <b className={`num ${m.pnl > 0 ? 'pos' : m.pnl < 0 ? 'neg' : ''}`}>{signed(m.pnl)}</b>
+                            <small>USDC P&amp;L</small>
+                          </div>
+                        </div>
+                        <div className="member-stats">
+                          <span>
+                            <b className="num">{m.wins}</b>/{m.calls} won
+                          </span>
+                          {m.streak > 0 && (
+                            <span className="streak">
+                              <img src="/art/nakama-object-2.webp" alt="" width={20} height={20} />
+                              {m.streak} win streak
+                            </span>
+                          )}
+                        </div>
+                        <div className="winbar" aria-hidden="true">
+                          <span style={{ width: `${m.calls ? (m.wins / m.calls) * 100 : 0}%` }} />
+                        </div>
+                        {m.history?.trades.slice(0, 2).map((trade) => (
+                          <div className="trade" key={trade.digests.fill}>
+                            <span className="trade-text">
+                              <span className={`side side-${trade.side ?? 'na'}`}>{trade.side ?? 'Predict'}</span>
+                              {trade.strike == null ? '' : <span className="num">{usd(trade.strike)}</span>}
+                              <span>· {trade.result} ·</span>
+                              <span className="num">{trade.pnl == null ? 'pending' : `${signed(trade.pnl)} USDC`}</span>
+                            </span>
+                            <span className="links">
+                              <a className="link-pill" href={`https://suiscan.xyz/mainnet/tx/${trade.digests.fill}`} target="_blank" rel="noreferrer">
+                                fill <Icon name="link" size={13} />
+                              </a>
+                              {trade.digests.payout && (
+                                <a className="link-pill" href={`https://suiscan.xyz/mainnet/tx/${trade.digests.payout}`} target="_blank" rel="noreferrer">
+                                  payout <Icon name="link" size={13} />
+                                </a>
+                              )}
+                            </span>
+                          </div>
+                        ))}
+                        {m.history && !m.history.complete && <p className="muted tiny">Recent history shown</p>}
+                      </li>
+                    ),
+                  )}
+                </ol>
+              ) : (
+                <div className="board-empty">
+                  <img src="/art/nakama-empty-2.webp" alt="" width={96} height={96} />
+                  <p className="muted">No members yet. Join, then share the invite.</p>
+                </div>
+              )}
+              <div className="playbook">
+                <h3>Playbook</h3>
+                {crew.playbook?.length ? (
+                  crew.playbook.map((p, i) => (
+                    <div key={i} className="play">
+                      <p>
+                        <b>Works:</b> {p.best}
+                      </p>
+                      <p>
+                        <b>Weak:</b> {p.worst}
+                      </p>
+                      <Recalled ids={p.blobId ? [p.blobId] : []} />
+                    </div>
+                  ))
+                ) : (
+                  <p className="muted small">The playbook is written to Walrus every five settled calls.</p>
+                )}
+                <button
+                  className="ghost-btn btn-soft"
+                  onClick={() =>
+                    void act(async () => {
+                      const r = await api<{ text: string }>(`/crews/${crew.id}/recap`);
+                      setRecap(r.text);
+                    })
+                  }
+                >
+                  Recap from crew memory
+                </button>
+                {recap && <p className="recap">{recap}</p>}
+              </div>
+            </section>
+          </aside>
         </main>
       )}
 
       <footer className="foot">
-        DeepBook Predict on Sui mainnet · memory on Walrus · chain reads via {status?.rpc ?? 'configured RPC'} ·
-        wallet members sign their own orders · art generated with ChatGPT
+        DeepBook Predict on Sui mainnet · memory on Walrus · chain reads via {status?.rpc ?? 'configured RPC'} · wallet members sign their own
+        orders · art generated with ChatGPT
       </footer>
     </div>
   );
