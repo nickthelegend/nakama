@@ -1893,7 +1893,8 @@ mysten-dapp-kit-connect-button::part(trigger) {
     justify-items: end;
   }
   .bubble-reply {
-    display: none;
+    position: absolute;
+    visibility: hidden;
   }
 }
 @media (max-width: 640px) {
@@ -1905,5 +1906,590 @@ mysten-dapp-kit-connect-button::part(trigger) {
   }
   .crew-head-body {
     padding: 12px 18px 16px;
+  }
+}
+
+/* ============ art pass 2: stickers, ambient motion ============ */
+@keyframes stk-pop {
+  0% {
+    scale: 0.2;
+    opacity: 0;
+  }
+  60% {
+    scale: 1.14;
+    opacity: 1;
+  }
+  100% {
+    scale: 1;
+    opacity: 1;
+  }
+}
+@keyframes push {
+  from {
+    transform: scale(1.03) translate(0, 0);
+  }
+  to {
+    transform: scale(1.12) translate(-1.6%, 1.2%);
+  }
+}
+@keyframes halftone-sweep {
+  from {
+    mask-position: 120% 0;
+    -webkit-mask-position: 120% 0;
+  }
+  to {
+    mask-position: -120% 0;
+    -webkit-mask-position: -120% 0;
+  }
+}
+@keyframes ping {
+  0% {
+    scale: 1;
+    opacity: 0.7;
+  }
+  100% {
+    scale: 2.3;
+    opacity: 0;
+  }
+}
+@keyframes burst {
+  0% {
+    scale: 0.15;
+    opacity: 1;
+    rotate: 0deg;
+  }
+  100% {
+    scale: 1.5;
+    opacity: 0;
+    rotate: 25deg;
+  }
+}
+@keyframes wiggle {
+  0%,
+  100% {
+    rotate: 10deg;
+  }
+  50% {
+    rotate: -10deg;
+  }
+}
+
+/* stickers */
+.stk {
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  filter: drop-shadow(0 6px 8px rgba(27, 23, 72, 0.22));
+  animation:
+    stk-pop 560ms cubic-bezier(0.34, 1.56, 0.64, 1) both,
+    float 6s ease-in-out 700ms infinite;
+}
+.inline-sticker {
+  width: 1.5em;
+  height: 1.5em;
+  margin: -0.3em 0;
+  flex: none;
+  vertical-align: -0.4em;
+  filter: none;
+  animation: stk-pop 520ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* halftone shimmer: a band of dots sweeping across art */
+.halftone {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.75) 1.3px, transparent 1.8px);
+  background-size: 10px 10px;
+  mix-blend-mode: overlay;
+  mask-image: linear-gradient(110deg, transparent 35%, #000 50%, transparent 65%);
+  -webkit-mask-image: linear-gradient(110deg, transparent 35%, #000 50%, transparent 65%);
+  mask-size: 260% 100%;
+  -webkit-mask-size: 260% 100%;
+  mask-repeat: no-repeat;
+  -webkit-mask-repeat: no-repeat;
+  animation: halftone-sweep 7s linear infinite;
+}
+
+/* hero: slow push inside a frame, pointer parallax, more stickers */
+.hero-frame {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 40px;
+  box-shadow: var(--shadow-lift);
+  transform: translate(calc(var(--px, 0) * -10px), calc(var(--py, 0) * -10px));
+  transition: transform 500ms var(--ease);
+}
+.hero-frame .hero-img,
+.hero-frame .hero-video {
+  border-radius: 0;
+  box-shadow: none;
+  transform-origin: 62% 42%;
+  animation: push 22s ease-in-out infinite alternate;
+}
+.hero-art .sticker {
+  transform: translate(calc(var(--px, 0) * 22px), calc(var(--py, 0) * 22px));
+  transition: transform 500ms var(--ease);
+}
+.hero-art .sticker-a {
+  rotate: -10deg;
+}
+.hero-art .sticker-b {
+  rotate: 8deg;
+}
+.hero-art .sticker-c {
+  width: 92px;
+  height: auto;
+  right: -22px;
+  bottom: 32%;
+  rotate: 18deg;
+  animation-delay: 300ms, 1s;
+}
+.hero-art .sticker-d {
+  width: 84px;
+  height: auto;
+  left: 36%;
+  bottom: -30px;
+  rotate: -8deg;
+  animation-delay: 500ms, 1.6s;
+}
+.bubble-face {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  margin: -4px 2px -4px -6px;
+  box-shadow: 0 2px 6px rgba(27, 23, 72, 0.25);
+}
+.bubble-reply .bubble-face {
+  margin: -4px -6px -4px 4px;
+}
+.bubble {
+  animation: rise 500ms var(--ease) 150ms both;
+}
+.bubble-reply {
+  animation-delay: 400ms;
+}
+
+/* start card: art faces as an invite hint */
+.start-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.start-head h2 {
+  margin-bottom: 6px;
+}
+.art-pile {
+  display: flex;
+  align-items: center;
+  padding-left: 10px;
+}
+.art-pile img,
+.art-pile i {
+  width: 40px;
+  height: 40px;
+  margin-left: -10px;
+  border-radius: 50%;
+  border: 3px solid var(--surface);
+  box-shadow: 0 4px 10px -4px rgba(27, 23, 72, 0.35);
+  animation: stk-pop 520ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.art-pile img:nth-child(2) {
+  animation-delay: 80ms;
+}
+.art-pile img:nth-child(3) {
+  animation-delay: 160ms;
+}
+.art-pile img:nth-child(4) {
+  animation-delay: 240ms;
+}
+.art-pile i {
+  display: grid;
+  place-items: center;
+  font-style: normal;
+  font-weight: 900;
+  font-size: 20px;
+  color: var(--violet);
+  background: var(--tint-2);
+  border-style: dashed;
+  border-color: var(--violet);
+  border-width: 2px;
+  animation-delay: 320ms;
+}
+
+/* how it works */
+.steps-head {
+  display: grid;
+  gap: 6px;
+  margin-top: 28px;
+}
+.steps-head h2 {
+  font-size: clamp(26px, 3.2vw, 38px);
+  font-weight: 900;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+}
+.steps {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.step {
+  animation: rise 600ms var(--ease) calc(var(--i, 0) * 110ms) both;
+}
+.step > .step-art {
+  position: relative;
+  display: block;
+  padding: 0;
+}
+.step .step-art img:first-child {
+  transition: transform 600ms var(--ease);
+}
+.step:hover .step-art img:first-child {
+  transform: scale(1.04);
+}
+.step .step-art {
+  border-radius: var(--r-inner);
+}
+.step .step-art > img:first-child {
+  display: block;
+}
+.step .step-sticker {
+  position: absolute;
+  width: 78px;
+  height: 78px;
+  aspect-ratio: auto;
+  right: -12px;
+  bottom: -22px;
+  border-radius: 0;
+  object-fit: contain;
+  rotate: 10deg;
+  animation-delay: calc(var(--i, 0) * 110ms + 300ms), 1s;
+}
+
+/* closing band */
+.cta-band {
+  position: relative;
+  overflow: hidden;
+  margin-top: 28px;
+  min-height: 300px;
+  border-radius: 36px;
+  display: grid;
+  align-items: end;
+  box-shadow: var(--shadow-lift);
+  isolation: isolate;
+}
+.cta-band > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: -2;
+  animation: push 26s ease-in-out infinite alternate;
+}
+.cta-band::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(90deg, rgba(27, 23, 72, 0.92) 0%, rgba(27, 23, 72, 0.7) 45%, rgba(27, 23, 72, 0.05) 80%);
+}
+.cta-band > div {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+  padding: 36px;
+  max-width: 560px;
+  color: #fff;
+}
+.cta-band h2 {
+  font-size: clamp(26px, 3vw, 36px);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+.cta-band p {
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 500;
+}
+.btn-sun {
+  background: var(--sun);
+  color: var(--ink);
+  text-decoration: none;
+  box-shadow: 0 10px 22px -10px rgba(255, 210, 63, 0.9);
+}
+
+/* crew header emblem */
+.crew-head {
+  position: relative;
+}
+.crew-banner {
+  position: relative;
+  overflow: hidden;
+}
+.crew-emblem {
+  position: absolute;
+  right: 14px;
+  top: 64px;
+  width: 84px;
+  height: 84px;
+  filter: drop-shadow(0 8px 12px rgba(27, 23, 72, 0.35));
+  animation:
+    stk-pop 600ms cubic-bezier(0.34, 1.56, 0.64, 1) both,
+    float 7s ease-in-out 800ms infinite;
+}
+
+/* call card */
+.call-head {
+  position: relative;
+  isolation: isolate;
+}
+.call-head .halftone {
+  z-index: -1;
+}
+.dir-badge {
+  position: relative;
+}
+.dir-badge .dir-sticker {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  left: -16px;
+  bottom: -16px;
+  rotate: -16deg;
+}
+.strike-row .field {
+  position: relative;
+}
+.field-sticker {
+  position: absolute;
+  right: 8px;
+  bottom: 4px;
+  width: 44px;
+  height: 44px;
+  rotate: 8deg;
+}
+.ring-wrap {
+  position: relative;
+  flex: none;
+}
+.ring-sticker {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  right: -12px;
+  top: -12px;
+  rotate: 12deg;
+}
+.ring-sticker.urgent {
+  animation:
+    stk-pop 560ms cubic-bezier(0.34, 1.56, 0.64, 1) both,
+    wiggle 420ms ease-in-out infinite;
+}
+.odds-dot::after {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 3px solid;
+  border-color: inherit;
+  animation: ping 1.8s ease-out infinite;
+}
+.tap-door {
+  width: 52px;
+  height: 52px;
+  margin: -10px -2px -10px 0;
+  object-fit: contain;
+  rotate: -8deg;
+  animation: stk-pop 520ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.result-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.label-sticker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.joined-tag .inline-sticker,
+.tap .inline-sticker {
+  width: 28px;
+  height: 28px;
+}
+
+/* tap result: a burst and a sticker */
+.receipt {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.receipt-head {
+  padding-right: 64px;
+}
+.burst {
+  position: absolute;
+  left: -70px;
+  top: -80px;
+  width: 260px;
+  height: 260px;
+  z-index: -1;
+  border-radius: 50%;
+  pointer-events: none;
+  background: repeating-conic-gradient(rgba(255, 210, 63, 0.75) 0deg 9deg, transparent 9deg 22deg, rgba(255, 84, 112, 0.5) 22deg 28deg, transparent 28deg 40deg);
+  mask-image: radial-gradient(circle, #000 30%, transparent 70%);
+  -webkit-mask-image: radial-gradient(circle, #000 30%, transparent 70%);
+  animation: burst 1100ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.receipt-sticker {
+  position: absolute;
+  right: 12px;
+  top: 10px;
+  width: 64px;
+  height: 64px;
+  rotate: 8deg;
+  animation-delay: 200ms, 900ms;
+}
+.toast-sticker {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  margin: -6px 0;
+  filter: none;
+}
+
+/* empty states */
+.empty-art {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+}
+.call-empty .empty-art > img:first-child {
+  width: 128px;
+  height: 128px;
+}
+.empty-art .empty-sticker {
+  position: absolute;
+  width: 54px;
+  height: 54px;
+  right: -14px;
+  top: -10px;
+  rotate: -12deg;
+}
+.board-empty .empty-art > img:first-child {
+  width: 112px;
+  height: 112px;
+}
+
+/* board: podium head, crown on the leader */
+.board-head .podium {
+  width: 72px;
+  height: 72px;
+  margin: -10px -4px -6px -8px;
+  object-fit: contain;
+  animation: stk-pop 600ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.avatar-slot {
+  position: relative;
+  display: inline-grid;
+  flex: none;
+}
+.avatar-slot .crown {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  left: -10px;
+  top: -18px;
+  rotate: -20deg;
+}
+.member-lead {
+  box-shadow: inset 0 0 0 2px var(--sun);
+}
+.streak .inline-sticker {
+  width: 22px;
+  height: 22px;
+}
+
+@media (max-width: 1080px) {
+  .steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 880px) {
+  .steps {
+    grid-template-columns: 1fr;
+  }
+  .step .step-art > img:first-child {
+    aspect-ratio: 1;
+  }
+  .step .step-sticker {
+    width: 44px;
+    height: 44px;
+    right: -8px;
+    bottom: -10px;
+  }
+}
+@media (max-width: 640px) {
+  .crew-emblem {
+    width: 60px;
+    height: 60px;
+    top: 30px;
+    right: 14px;
+  }
+  .hero-art .sticker-c {
+    width: 64px;
+    right: -8px;
+    bottom: 40%;
+  }
+  .hero-art .sticker-d {
+    visibility: hidden;
+  }
+  .call-empty .empty-art > img:first-child {
+    width: 88px;
+    height: 88px;
+  }
+  .empty-art .empty-sticker {
+    width: 40px;
+    height: 40px;
+  }
+  .cta-band {
+    min-height: 360px;
+  }
+  .cta-band::before {
+    background: linear-gradient(0deg, rgba(27, 23, 72, 0.95) 0%, rgba(27, 23, 72, 0.75) 55%, rgba(27, 23, 72, 0.1) 100%);
+  }
+  .cta-band > div {
+    padding: 24px;
+  }
+  .receipt-sticker {
+    width: 48px;
+    height: 48px;
+  }
+  .receipt-head {
+    padding-right: 44px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-frame,
+  .hero-art .sticker {
+    transform: none !important;
+  }
+  .hero-frame .hero-img {
+    transform: none !important;
+  }
+  .halftone,
+  .burst {
+    display: none;
+  }
+}
+@media (max-width: 880px) {
+  .crew-layout {
+    align-items: stretch;
   }
 }

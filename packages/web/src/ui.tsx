@@ -102,3 +102,20 @@ export function Ring({ seconds, total }: { seconds: number; total: number }) {
     </div>
   );
 }
+
+const STICKERS = ['fire', 'rocket', 'skull', 'handshake', 'clock', 'crown', 'target', 'moon'] as const;
+/** Die-cut sticker art. Decorative unless a label is given. */
+export function Sticker({ name, className = '', label }: { name: string; className?: string; label?: string }) {
+  if (!(STICKERS as readonly string[]).includes(name)) return null;
+  return (
+    <img
+      className={`stk ${className}`}
+      src={`/art/nakama-sticker-${name}.webp`}
+      alt={label ?? ''}
+      title={label}
+      width={96}
+      height={96}
+      draggable={false}
+    />
+  );
+}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useCurrentAccount, useDAppKit } from '@mysten/dapp-kit-react';
 import { ConnectButton } from '@mysten/dapp-kit-react/ui';
-import { Avatar, Icon, Ring, short, signed, usd } from './ui';
+import { Avatar, Icon, Ring, Sticker, short, signed, usd } from './ui';
 
 type Direction = 'up' | 'down' | 'range';
 type Market = {
@@ -343,6 +343,21 @@ export function App() {
         history: null,
       };
     }) ?? [];
+  // Crown goes to the member with the best real P&L, only once two or more records are loaded and it is positive.
+  const loaded = board.filter((m) => status?.memoryConfigured || m.history);
+  const best = loaded.length > 1 ? loaded.reduce((a, b) => (b.pnl > a.pnl ? b : a)) : null;
+  const leader = best && best.pnl > 0 ? best.address : null;
+
+  // Hero parallax: the art and stickers drift a few pixels with the pointer (off under reduced motion via CSS).
+  const parallax = (e: React.PointerEvent<HTMLElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    e.currentTarget.style.setProperty('--px', ((e.clientX - r.left) / r.width - 0.5).toFixed(3));
+    e.currentTarget.style.setProperty('--py', ((e.clientY - r.top) / r.height - 0.5).toFixed(3));
+  };
+  const parallaxReset = (e: React.PointerEvent<HTMLElement>) => {
+    e.currentTarget.style.setProperty('--px', '0');
+    e.currentTarget.style.setProperty('--py', '0');
+  };
 
   const size = suggestion?.member?.size ?? 2;
   const boosted = suggestion?.member?.multiplier === 1.5;
@@ -435,6 +450,8 @@ export function App() {
 
   const tapReceipt = tapResult ? (
     <section className="toast receipt receipt-ok" role="status">
+      <span className="burst" aria-hidden="true" />
+      <Sticker name="handshake" className="receipt-sticker" />
       <div className="receipt-head">
         <span className="receipt-badge">
           <Icon name="check" size={22} />
@@ -466,7 +483,11 @@ export function App() {
       className={`toast ${/^(Predict refused|Dry-run (?!success))/.test(message) ? 'toast-bad' : /^(Order queued|Invite)/.test(message) ? 'toast-ok' : 'toast-info'}`}
       role="status"
     >
-      <Icon name={/^(Order queued|Invite)/.test(message) ? 'check' : 'alert'} size={18} />
+      {/^(Predict refused|Dry-run (?!success))/.test(message) ? (
+        <Sticker name="skull" className="toast-sticker" />
+      ) : (
+        <Icon name={/^(Order queued|Invite)/.test(message) ? 'check' : 'alert'} size={18} />
+      )}
       <span>{message}</span>
     </section>
   ) : null;
@@ -508,7 +529,7 @@ export function App() {
         </main>
       ) : crewFailed ? (
         <main className="state-page">
-          <img src="/art/nakama-empty-2.webp" alt="" width={140} height={140} />
+          <img src="/art/nakama-empty-crew.webp" alt="" width={160} height={160} />
           <h1>Couldn't open this crew</h1>
           <p className="state-error" role="alert">
             {message}
@@ -524,7 +545,7 @@ export function App() {
           </button>
         </main>
       ) : !crew ? (
-        <main className="landing">
+        <main className="landing" id="top">
           <section className="hero">
             <div className="hero-copy">
               <span className="kicker">
@@ -540,8 +561,18 @@ export function App() {
                 before it closes, and each friend signs their own order.
               </p>
               <section className="card start" aria-label="Start your crew">
-                <h2>Start your crew</h2>
-                <p className="muted small">Pick a name, then share the invite link with your friends.</p>
+                <div className="start-head">
+                  <div>
+                    <h2>Start your crew</h2>
+                    <p className="muted small">Pick a name, then share the invite link with your friends.</p>
+                  </div>
+                  <span className="art-pile" aria-hidden="true">
+                    {[1, 2, 3, 4].map((n) => (
+                      <img key={n} src={`/art/nakama-avatar-${n}.webp`} alt="" width={44} height={44} />
+                    ))}
+                    <i>+</i>
+                  </span>
+                </div>
                 <div className="row">
                   <input placeholder="Crew name" aria-label="Crew name" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} />
                   <button className="btn btn-primary" disabled={busy || !name.trim()} onClick={create}>
@@ -559,7 +590,8 @@ export function App() {
               {tapReceipt}
               {viewAs}
             </div>
-            <figure className="hero-art">
+            <figure className="hero-art" onPointerMove={parallax} onPointerLeave={parallaxReset}>
+              <div className="hero-frame">
               <img
                 className="hero-img"
                 src="/art/nakama-hero.webp"
@@ -583,26 +615,42 @@ export function App() {
                   onLoadedData={() => setHeroVideo('ready')}
                 />
               )}
+                <span className="halftone" aria-hidden="true" />
+              </div>
               <img className="sticker sticker-a" src="/art/nakama-object-1.webp" alt="" width={150} height={150} />
               <img className="sticker sticker-b" src="/art/nakama-object-2.webp" alt="" width={130} height={130} />
+              <Sticker name="rocket" className="sticker sticker-c" />
+              <Sticker name="clock" className="sticker sticker-d" />
               <figcaption>
                 <span className="bubble bubble-call">
+                  <img className="bubble-face" src="/art/nakama-avatar-2.webp" alt="" width={28} height={28} />
                   <Icon name="up" size={16} /> “BTC above the strike, 5 min. Who's in?”
                 </span>
-                <span className="bubble bubble-reply">One tap each. Everyone signs their own.</span>
+                <span className="bubble bubble-reply">
+                  One tap each. Everyone signs their own.
+                  <img className="bubble-face" src="/art/nakama-avatar-4.webp" alt="" width={28} height={28} />
+                </span>
               </figcaption>
             </figure>
           </section>
           {setupNotice}
 
+          <header className="steps-head">
+            <p className="eyebrow">How it works</p>
+            <h2>One call, one tap each, one scoreboard</h2>
+          </header>
           <section className="steps" aria-label="How a crew call works">
             {[
-              ['nakama-feature-2', '1', 'Someone calls it', 'Pick a live BTC market, above or below a strike, and say why. Predict odds show under the strike before you post.'],
-              ['nakama-feature-1', '2', 'The crew taps in', 'Each friend gets one tap before the market closes. Every order is quoted and simulated first, then signed in that member’s own wallet.'],
-              ['nakama-feature-3', '3', 'The board keeps score', 'Each member’s real Predict record from Sui mainnet: wins, P&L in USDC and streaks, with Suiscan links for every fill and payout.'],
-            ].map(([art, n, title, body]) => (
-              <article className="step card" key={n}>
-                <img src={`/art/${art}.webp`} alt="" width={1024} height={1024} loading="lazy" />
+              ['nakama-call-hype', '1', 'Someone calls it', 'Pick a live BTC market, above or below a strike, and say why. Predict odds show under the strike before you post.', 'rocket'],
+              ['nakama-tap-in', '2', 'The crew taps in', 'Each friend gets one tap before the market closes. Every order is quoted and simulated first.', 'clock'],
+              ['nakama-phone-crew', '3', 'Everyone signs their own', 'No pooled funds. Each order is signed in that member’s own wallet, from their own Predict account.', 'handshake'],
+              ['nakama-film-bg-1', '4', 'The board keeps score', 'Each member’s real Predict record from Sui mainnet: wins, P&L in USDC and streaks, with Suiscan links.', 'fire'],
+            ].map(([art, n, title, body, stk]) => (
+              <article className="step card" key={n} style={{ ['--i' as string]: Number(n) - 1 }}>
+                <div className="step-art">
+                  <img src={`/art/${art}.webp`} alt="" width={1536} height={1024} loading="lazy" />
+                  <Sticker name={stk} className="step-sticker" />
+                </div>
                 <div>
                   <span className="step-n">{n}</span>
                   <h3>{title}</h3>
@@ -611,6 +659,16 @@ export function App() {
               </article>
             ))}
           </section>
+          <section className="cta-band" aria-label="Bring your crew">
+            <img src="/art/nakama-film-bg-2.webp" alt="" width={1536} height={1024} loading="lazy" />
+            <div>
+              <h2>Calls are better with your nakama</h2>
+              <p>Name a crew, share one link, and make the next BTC call together.</p>
+              <a className="btn btn-sun" href="#top">
+                Start your crew <Icon name="up" size={16} />
+              </a>
+            </div>
+          </section>
         </main>
       ) : (
         <main className="crew-layout">
@@ -618,7 +676,9 @@ export function App() {
             <section className="card crew-head">
               <div className="crew-banner">
                 <img src="/art/nakama-banner.webp" alt="" width={1536} height={512} />
+                <span className="halftone" aria-hidden="true" />
               </div>
+              <img className="crew-emblem" src="/art/nakama-crew-emblem.webp" alt="" width={84} height={84} />
               <div className="crew-head-body">
                 <p className="eyebrow">Your crew · BTC/USD</p>
                 <h1>{crew.name}</h1>
@@ -656,7 +716,7 @@ export function App() {
                   )}
                   {joined && (
                     <span className="joined-tag">
-                      <Icon name="check" size={15} /> {account ? "You're in this crew" : 'In the crew'}
+                      <Sticker name="handshake" className="inline-sticker" /> {account ? "You're in this crew" : 'In the crew'}
                     </span>
                   )}
                 </div>
@@ -670,6 +730,7 @@ export function App() {
             {active ? (
               <article className={`card call ${outOfBand ? 'call-closed' : ''}`} key={active.id}>
                 <header className="call-head">
+                  <span className="halftone" aria-hidden="true" />
                   <Avatar address={active.caller} size={44} />
                   <div className="call-who">
                     <b className="num">{short(active.caller)}</b>
@@ -686,6 +747,7 @@ export function App() {
                     <h2 className={`call-dir dir-${active.setup.direction}`}>
                       <span className="dir-badge">
                         <Icon name={active.setup.direction} size={22} />
+                        <Sticker name={active.setup.direction === 'up' ? 'rocket' : 'target'} className="dir-sticker" />
                       </span>
                       <span>
                         {active.setup.direction === 'range'
@@ -695,7 +757,10 @@ export function App() {
                     </h2>
                     {active.why && <p className="why">“{active.why}”</p>}
                   </div>
-                  <Ring seconds={secondsLeft(active.expiryMs)} total={active.setup.cadence * 60} />
+                  <div className="ring-wrap">
+                    <Ring seconds={secondsLeft(active.expiryMs)} total={active.setup.cadence * 60} />
+                    <Sticker name="clock" className={`ring-sticker ${secondsLeft(active.expiryMs) <= 30 ? 'urgent' : ''}`} />
+                  </div>
                 </div>
                 {status?.memoryConfigured && (
                   <p className="muted small">
@@ -754,11 +819,11 @@ export function App() {
                       </>
                     ) : mineIn ? (
                       <>
-                        <Icon name="check" size={20} /> You're in
+                        <Sticker name="handshake" className="inline-sticker" /> You're in
                       </>
                     ) : outOfBand ? (
                       <>
-                        <Icon name="lock" size={20} /> Entry closed
+                        <img className="tap-door" src="/art/nakama-entry-closed.webp" alt="" width={56} height={56} /> Entry closed
                       </>
                     ) : (
                       <>
@@ -779,7 +844,10 @@ export function App() {
               </article>
             ) : (
               <section className="card call-empty">
-                <img src="/art/nakama-empty-1.webp" alt="" width={140} height={140} />
+                <div className="empty-art">
+                  <img src="/art/nakama-empty-crew.webp" alt="" width={150} height={150} />
+                  <Sticker name="moon" className="empty-sticker" />
+                </div>
                 <div>
                   <h2>No live call</h2>
                   <p className="muted">Post one below. Your crew gets one tap to join before the market closes.</p>
@@ -804,7 +872,10 @@ export function App() {
                   <div key={o.digest} className={`result ${o.hit ? 'win' : 'loss'}`}>
                     <Avatar address={o.address} size={32} />
                     <span className="num">{short(o.address)}</span>
-                    <b className="result-tag">{o.hit ? 'WIN' : 'LOSS'}</b>
+                    <b className="result-tag">
+                      {o.hit ? <Sticker name="fire" className="inline-sticker" /> : <Sticker name="skull" className="inline-sticker" />}
+                      {o.hit ? 'WIN' : 'LOSS'}
+                    </b>
                     <span className="num">{o.pnl == null ? 'pending' : `${signed(o.pnl)} USDC`}</span>
                     <span className="links">
                       <a className="link-pill" href={`https://suiscan.xyz/mainnet/tx/${o.digest}`} target="_blank" rel="noreferrer">
@@ -881,6 +952,7 @@ export function App() {
                     placeholder={String(suggestedStrike ?? '')}
                     onChange={(e) => setStrike(e.target.value)}
                   />
+                  <Sticker name="target" className="field-sticker" />
                 </label>
                 {direction === 'range' && (
                   <label className="field">
@@ -924,7 +996,7 @@ export function App() {
           <aside className="board-col">
             <section className="card board-card" aria-label="Crew board">
               <header className="board-head">
-                <img src="/art/nakama-object-3.webp" alt="" width={56} height={56} />
+                <img className="podium" src="/art/nakama-board-podium.webp" alt="" width={72} height={72} />
                 <div>
                   <h2>Crew board</h2>
                   <p className="muted small">{status?.memoryConfigured ? 'from Walrus Memory' : 'from on-chain history · recent queue events'}</p>
@@ -943,9 +1015,12 @@ export function App() {
                         <span className="skeleton skeleton-wide" />
                       </li>
                     ) : (
-                      <li className="member" key={m.address}>
+                      <li className={`member ${m.address === leader ? 'member-lead' : ''}`} key={m.address}>
                         <div className="member-top">
-                          <Avatar address={m.address} size={40} />
+                          <span className="avatar-slot">
+                            <Avatar address={m.address} size={40} />
+                            {m.address === leader && <Sticker name="crown" className="crown" label="Crew leader by P&L" />}
+                          </span>
                           <div className="member-id">
                             <span className="num">{short(m.address)}</span>
                             {m.address === owner && <span className="you">viewing</span>}
@@ -961,7 +1036,7 @@ export function App() {
                           </span>
                           {m.streak > 0 && (
                             <span className="streak">
-                              <img src="/art/nakama-object-2.webp" alt="" width={20} height={20} />
+                              <Sticker name="fire" className="inline-sticker" />
                               {m.streak} win streak
                             </span>
                           )}
@@ -996,8 +1071,11 @@ export function App() {
                 </ol>
               ) : (
                 <div className="board-empty">
-                  <img src="/art/nakama-empty-2.webp" alt="" width={96} height={96} />
-                  <p className="muted">No members yet. Join, then share the invite.</p>
+                  <div className="empty-art">
+                    <img src="/art/nakama-empty-crew.webp" alt="" width={120} height={120} />
+                    <Sticker name="moon" className="empty-sticker" />
+                  </div>
+                  <p className="muted">Quiet crew. Join, then share the invite.</p>
                 </div>
               )}
               <div className="playbook">
