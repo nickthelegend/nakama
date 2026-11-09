@@ -497,7 +497,7 @@ export function App() {
   return (
     <div className="shell">
       {account && wallet?.name === DEMO_WALLET_NAME && (
-        <div className="demo-signer-badge" role="status">Demo signer · server-held demo key · real mainnet funds</div>
+        <div className="demo-signer-badge" role="status">Demo signer · server-held demo key · {String(status?.rpc ?? '').includes('LOCAL FORK') ? 'LOCAL FORK of Sui mainnet · no real funds' : 'real mainnet funds'}</div>
       )}
       <header className="topbar">
         <a className="brand" href="/" aria-label="Nakama home">
