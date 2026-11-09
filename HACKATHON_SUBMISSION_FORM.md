@@ -24,7 +24,7 @@ Nakama checks Predict's live odds before a call goes up. Predict only accepts a 
 
 After the market settles, Nakama writes the outcome to Walrus Memory: the call, each member's result, and every five calls a crew playbook. The next time a similar setup comes up, it recalls the crew's record for that setup and the member's own record. It uses them to suggest a stake size, flag cold setups and pre-fill the composer with the crew's best setup.
 
-**Status today.** Mainnet market reads, odds checks, quotes and transaction dry-runs work. The full write path (fund a Predict account, join a call with a real queued order, verify the receipt) has been proven on a **local fork of Sui mainnet** only. **PENDING:** a signed crew round on mainnet needs hub funding (40 USDC and 2.5 SUI to `0xf5887bcfaa178fbcc29f560afce15734e13989955100f9a6b6154c34a79c1f11`; about 6 USDC and 0.6 SUI of it for the two demo members, who are unfunded). Walrus Memory is ready: Nakama's own delegate key authenticates to the mainnet relayer. There are **0 Nakama memories on mainnet today**, and the event requires at least 10. They are written by the funded mainnet run.
+**Status today.** Mainnet market reads, odds checks, quotes and transaction dry-runs work. The full write path (fund a Predict account, join a call with a real queued order, verify the receipt) has been proven on a **local fork of Sui mainnet** only. **PENDING:** a signed crew round on mainnet runs in the funded live run on Nov 10. The hub holds 26.28 USDC and 2.26 SUI. Each demo member gets 2.5 USDC and 0.2 SUI, and the run is `packages/server/scripts/live-run.ts`, rehearsed on the fork at those amounts. **Walrus Memory is live: 15 Nakama memories on mainnet** (Nov 9, 22:45 UTC). They come from crew `aa3e80a3` ("Public desk"): 3 membership memories, plus the 12 settled Predict trades of its three public members, written as their result memories.
 
 ## How it uses Walrus Memory
 
@@ -46,7 +46,7 @@ Nakama uses `@mysten-incubation/memwal` against the mainnet relayer `https://rel
 
 Writes are capped at 30 a minute and back off on HTTP 429. Mainnet blobs took over 60 s to certify, so each write waits up to 300 s.
 
-**PENDING:** no memory has been written to mainnet yet, so the recall loop has not run against real data. The account and Nakama's delegate key are ready and authenticate. What is missing is settled rounds to write about, which need the funded mainnet run. The plan for at least 10 memories: one crew with 2 members (2 `membership`) and 3 settled calls (3 `call` + 6 `result`) makes 11 or more.
+**Live on mainnet (Nov 9):** 15 memories in `nakama-v1:crew:aa3e80a3` (3) and three `nakama-v1:member:<address>` namespaces (7, 4 and 1). They were counted with `packages/core/scripts/walrus-count.ts` against the relayer's namespace list. The member result memories were recalled when the crew board and composer loaded. The funded run adds a real crew's joins, call, results and, every five settled calls, a playbook.
 
 ## How it uses Tatum
 
