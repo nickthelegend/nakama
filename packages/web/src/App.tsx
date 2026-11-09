@@ -243,6 +243,12 @@ export function App() {
   }, [marketId, direction, strikeValue]);
   const draftOutOfBand = draftOdds?.inBand === false;
   const secondsLeft = (ms: number) => Math.max(0, Math.ceil((ms - now) / 1000));
+  // The server refuses calls on a market closing within 15 s, so only offer markets with time left to join.
+  const openMarkets = markets.filter((m) => m.expiryMs - now > 20_000);
+  const openKey = openMarkets.map((m) => m.id).join(',');
+  useEffect(() => {
+    if (openMarkets.length && !openMarkets.some((m) => m.id === marketId)) setMarketId(openMarkets[0].id);
+  }, [openKey, marketId]);
 
   async function act(fn: () => Promise<void>) {
     setBusy(true);
@@ -524,7 +530,7 @@ export function App() {
             <label>
               Market
               <select value={marketId} onChange={(e) => setMarketId(e.target.value)}>
-                {markets.map((m) => (
+                {openMarkets.map((m) => (
                   <option key={m.id} value={m.id}>
                     BTC {m.cadence} min · closes in {secondsLeft(m.expiryMs)}s
                   </option>
