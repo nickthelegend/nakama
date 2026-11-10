@@ -23,8 +23,8 @@ export function App() {
   }, [path]);
   const n = useNakama();
   let page;
-  const shell = path === '/app' || path === '/room';
-  if (shell) page = <Shell n={n} />;
+  const shell = path === '/app' || path === '/room' || path === '/rooms';
+  if (shell) page = <Shell n={n} initialTab={path === '/app' ? undefined : 'rooms'} />;
   else if (path === '/board') page = <Board n={n} />;
   else if (path === '/tx') page = <TxPage n={n} />;
   else page = <Landing n={n} />;

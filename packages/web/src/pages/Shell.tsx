@@ -3,14 +3,15 @@ import type { N } from '../state';
 import { pct } from '../state';
 import { CallBuilder, CrewCard, CrewState, EventRow, FundCard, LiveCall, MemoryPanel, PlayerCard, Playbook, ResultCard, Scoreboard, SetupNotice, TapButton, Toast, callTitle, crewEvents } from '../parts';
 import { ModeBadge } from '../hud';
+import { InviteCard, Rooms, StartCrew } from '../crew-first';
 import { Avatar, CrewAvatar, Ic, OddsBar, TokenLogo, short, usd } from '../ui';
 
-type Tab = 'chat' | 'call' | 'crew' | 'board';
+type Tab = 'rooms' | 'chat' | 'call' | 'crew' | 'board';
 
 /** The four moves of a round, checked against real state. */
 export function steps(n: N): { text: string; done: boolean; target: string; tab: Tab }[] {
   return [
-    { text: 'Start or join a crew', done: n.joined, target: n.crew ? 'you' : 'chat-composer', tab: n.crew ? 'crew' : 'chat' },
+    { text: 'Start a crew and invite friends, or join one', done: n.joined, target: n.crew ? 'you' : 'start', tab: n.crew ? 'crew' : 'chat' },
     { text: 'Someone posts a BTC call', done: !!n.crew?.calls.length, target: 'make-a-call', tab: 'call' },
     { text: 'Everyone taps in with 2 USDC from their own wallet', done: !!n.crew?.calls.some((c) => c.orders.length > 0), target: 'live', tab: 'call' },
     { text: 'Pyth settles it and the scoreboard keeps score', done: n.settledCalls.length > 0, target: 'board', tab: 'board' },
@@ -18,8 +19,9 @@ export function steps(n: N): { text: string; done: boolean; target: string; tab:
 }
 
 /** The app: the crew chat on the left (always visible), everything you pick from on the right. One screen, no page scroll. */
-export function Shell({ n }: { n: N }) {
-  const [tab, setTab] = useState<Tab>('chat');
+export function Shell({ n, initialTab }: { n: N; initialTab?: Tab }) {
+  const [tab, setTab] = useState<Tab>(initialTab ?? 'chat');
+  useEffect(() => { if (initialTab === 'rooms') requestAnimationFrame(() => document.getElementById('rooms')?.scrollIntoView({ block: 'start' })); }, [initialTab]);
   const crew = n.crew;
   const st = steps(n);
   const now = st.findIndex((s) => !s.done);
@@ -36,12 +38,20 @@ export function Shell({ n }: { n: N }) {
       </section>
       <aside className="side" aria-label="Calls, crew and scoreboard">
         <nav className="side-nav" aria-label="Jump to">
-          {([['steps', 'Start here'], ['make-a-call', 'Post a call'], ['live', 'Live call'], ['you', 'You'], ['crew', 'Crew'], ['board', 'Scoreboard'], ['memory', 'Memory']] as const).map(([id, label]) => (
+          {([['steps', 'Start here'], ['rooms', 'Rooms'], ['make-a-call', 'Post a call'], ['live', 'Live call'], ['you', 'You'], ['crew', 'Crew'], ['board', 'Scoreboard'], ['memory', 'Memory']] as const).map(([id, label]) => (
             <a key={id} href={`#${id}`} onClick={(e) => { e.preventDefault(); document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}>{label}</a>
           ))}
         </nav>
         <div className="side-sec" data-group="call" id="steps">
           <Steps n={n} onGo={go} />
+        </div>
+        {crew && n.joined && (
+          <div className="side-sec" data-group="crew" id="invite">
+            <InviteCard n={n} />
+          </div>
+        )}
+        <div className="side-sec" data-group="rooms">
+          <Rooms n={n} />
         </div>
         {n.active && (
           <div className="side-sec" data-group="call" id="live">
@@ -75,7 +85,7 @@ export function Shell({ n }: { n: N }) {
         <p className="side-foot">Members sign their own orders · <ModeBadge n={n} /></p>
       </aside>
       <nav className="tabs tabs-shell" aria-label="Sections">
-        {([['chat', 'Chat', 'nakama-mascot'], ['call', 'Call', 'nakama-icon-megaphone'], ['crew', 'Crew', 'nakama-icon-shield'], ['board', 'Board', 'nakama-icon-trophy']] as const).map(([t, l, art]) => (
+        {([['rooms', 'Rooms', 'nakama-icon-gem'], ['chat', 'Chat', 'nakama-mascot'], ['call', 'Call', 'nakama-icon-megaphone'], ['crew', 'Crew', 'nakama-icon-shield'], ['board', 'Board', 'nakama-icon-trophy']] as const).map(([t, l, art]) => (
           <button key={t} aria-pressed={tab === t} onClick={() => setTab(t)} data-film={`stab-${t}`}><img src={`/art/v2/${art}.webp`} alt="" />{l}</button>
         ))}
       </nav>
@@ -129,11 +139,15 @@ function Thread({ n }: { n: N }) {
       <SetupNotice n={n} />
       <CrewState n={n} />
       {!crew && !n.loadingCrew && !n.crewFailed && (
-        <div className="welcome" data-film="start">
-          <img src="/art/v2/nakama-og.webp" alt="The Nakama crew and the lucky cat" />
-          <h2>Your crew. One BTC call. Everyone taps in.</h2>
-          <p>Name your crew below to start one, or open a friend's invite link to join theirs.</p>
-        </div>
+        <>
+          <div className="welcome">
+            <img src="/art/v2/nakama-og.webp" alt="The Nakama crew and the lucky cat" />
+            <h2>Your crew. One BTC call. Everyone taps in.</h2>
+            <p>Start with your crew: name it, then share the link or QR code.</p>
+          </div>
+          <StartCrew n={n} />
+          <p className="hint-bubble">Or pick a public room from <b>Rooms</b>.</p>
+        </>
       )}
       {crew && <span className="daysep">Crew {crew.id}</span>}
       {crew && events.length === 0 && <p className="hint-bubble">Nobody's here yet. Join the crew, then share the invite link.</p>}
@@ -158,6 +172,7 @@ function Thread({ n }: { n: N }) {
           <EventRow key={e.key} e={e} n={n} />
         ),
       )}
+      {crew && n.joined && crew.members.length < 2 && <div className="rich-center"><InviteCard n={n} compact /></div>}
       <div className="receipt"><Toast n={n} /></div>
     </div>
   );
@@ -184,17 +199,7 @@ function PastCall({ n, e }: { n: N; e: ReturnType<typeof crewEvents>[number] }) 
 /** Pinned at the bottom: start a crew, join it, or post a call in plain chat form. */
 function ChatComposer({ n }: { n: N }) {
   const ready = n.joined && !n.busy && !!n.marketId && !!n.why.trim() && !n.draftOutOfBand;
-  if (!n.crew)
-    return (
-      <form className="composer composer2" id="chat-composer" onSubmit={(e) => { e.preventDefault(); if (n.name.trim()) n.create(); }}>
-        <p className="composer-k"><b>1</b> Start a crew</p>
-        <div className="pill">
-          <input value={n.name} onChange={(e) => n.setName(e.target.value)} placeholder="Crew name, e.g. Night Owls" aria-label="Crew name" maxLength={40} data-film="crew-name" />
-          <button className="b3 b3-sm" disabled={n.busy || !n.name.trim()} data-film="start-crew">START A CREW</button>
-        </div>
-        <p className="composer-note">{n.account ? 'Your wallet is connected.' : n.viewingAs ? 'No wallet: this becomes a read-only preview crew.' : 'Connect a wallet (top right), or view as a public address in the You panel.'}</p>
-      </form>
-    );
+  if (!n.crew) return null;
   if (!n.joined)
     return (
       <div className="composer" id="chat-composer">

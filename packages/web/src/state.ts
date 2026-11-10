@@ -46,6 +46,7 @@ export type Crew = {
   members: string[];
   calls: Call[];
   readOnlyDemo?: boolean;
+  public?: boolean;
   playbook?: { best: string; worst: string; blobId?: string }[];
 };
 export type Status = { rpc: string; memoryNetwork: string; memoryConfigured: boolean; mainnetWrites: boolean; setup: string[]; fork?: { label?: string; writes?: boolean } | null };
@@ -67,6 +68,7 @@ export type PlanResult = {
 };
 export type Odds = { direction: string; probability: number | null; inBand: boolean | null; band: { min: number; max: number }; forward?: number; asOfMs?: number | null; rpc?: string };
 export type TapResult = { address: string; totalDebit: number; orderFee: number };
+export type Room = { id: string; name: string; members: number; calls: number; createdAt: string; readOnlyDemo: boolean; live: { id: string; direction: Direction; strike: number; upper: number | null; cadence: 1 | 5; expiryMs: number; taps: number } | null };
 export type BoardRow = { address: string; calls: number; wins: number; pnl: number; streak: number; history: History | null };
 
 export async function api<T>(path: string, body?: unknown): Promise<T> {
@@ -129,6 +131,8 @@ export function useNakama() {
   const [composer, setComposer] = useState<MemoryView | null>(null);
   const [suggestion, setSuggestion] = useState<MemoryView | null>(null);
   const [name, setName] = useState('');
+  const [isPublic, setIsPublic] = useState(true);
+  const [rooms, setRooms] = useState<Room[] | null>(null);
   const [why, setWhy] = useState('');
   const [marketId, setMarketId] = useState('');
   const [direction, setDirection] = useState<Direction>('up');
@@ -173,6 +177,7 @@ export function useNakama() {
         setCrewError(String((e as Error).message ?? e));
       }
     }
+    api<{ rooms: Room[] }>('/crews').then((r) => setRooms(r.rooms)).catch(() => setRooms((v) => v ?? []));
     try {
       const x = await api<{ markets: Market[] }>('/markets');
       setMarkets(x.markets);
@@ -300,7 +305,7 @@ export function useNakama() {
 
   const create = () =>
     act(async () => {
-      const c = await api<Crew>('/crews', { name, readOnlyDemo: !account });
+      const c = await api<Crew>('/crews', { name, readOnlyDemo: !account, public: isPublic });
       localStorage.setItem('nakama-crew', c.id);
       rememberCrew(c);
       // Stay in the page (a reload would drop the connected wallet): switch the crew and update the URL.
@@ -415,6 +420,16 @@ export function useNakama() {
   const bestStreak = board.reduce((n, m) => Math.max(n, m.streak), 0);
   const me = board.find((m) => m.address === owner);
   const demoSigner = !!account && wallet?.name === DEMO_WALLET_NAME;
+  /** Open another crew in place (keeps the connected wallet). */
+  const openCrew = (id: string) => {
+    const url = new URL(location.href);
+    url.pathname = '/app';
+    url.searchParams.set('crew', id);
+    history.pushState(null, '', url);
+    dispatchEvent(new PopStateEvent('popstate'));
+    setCrew(null);
+    setCrewId(id);
+  };
   const forgetCrew = () => {
     localStorage.removeItem('nakama-crew');
     location.href = '/app';
@@ -426,7 +441,7 @@ export function useNakama() {
     message, tapResult, busy, now, recap, remembered, active, latest, joined, mineIn, odds, oddsError, outOfBand, market, strikeValue,
     draftOdds, draftOutOfBand, secondsLeft, openMarkets, create, join, postCall, oneTap, loadRecap, rememberHistory, board, boardLoaded,
     leader, size, boosted, liveMode, suggestedStrike, loadingCrew, crewFailed, crewError, next1, next5, forward, clock, settledCalls,
-    crewWins, bestStreak, me, demoSigner, forgetCrew, notify: setMessage,
+    crewWins, bestStreak, me, demoSigner, forgetCrew, notify: setMessage, isPublic, setIsPublic, rooms, openCrew,
   };
 }
 export type N = ReturnType<typeof useNakama>;

@@ -5,7 +5,7 @@ import { Avatar, Link, TokenLogo, short, usd } from './ui';
 
 export const PAGES = [
   ['/app', 'Lobby', 'nakama-icon-coin'],
-  ['/room', 'Crew room', 'nakama-icon-megaphone'],
+  ['/rooms', 'Rooms', 'nakama-icon-megaphone'],
   ['/board', 'Scoreboard', 'nakama-icon-trophy'],
 ] as const;
 
@@ -77,7 +77,7 @@ export function Hud({ path, n }: { path: string; n: N }) {
               <span className="hc-txt"><small>{timer.label}</small><b className="mono">{n.clock(timer.ms)}</b></span>
             </Link>
           )}
-          <Link to={crew ? '/room' : '/app#start'} className="hud-chip hud-crew" title={crew ? `${crew.name}: open the crew room` : 'Start a crew'} data-film="hud-crew">
+          <Link to={crew ? '/app' : '/app#start'} className="hud-chip hud-crew" title={crew ? `${crew.name}: open the crew room` : 'Start a crew'} data-film="hud-crew">
             <span className="hc-avs">
               {crew && crew.members.length ? crew.members.slice(0, 4).map((m) => <Avatar key={m} address={m} size={28} />) : <img src="/art/v2/nakama-icon-megaphone.webp" alt="" />}
             </span>
@@ -107,7 +107,7 @@ export function PhoneTabs({ path }: { path: string }) {
   return (
     <nav className="tabs tabs-app" aria-label="Pages">
       {PAGES.map(([to, label, art]) => (
-        <Link key={to} to={to} aria-current={path === to ? 'page' : undefined}><img src={`/art/v2/${art}.webp`} alt="" />{label.replace('Crew room', 'Room')}</Link>
+        <Link key={to} to={to} aria-current={path === to ? 'page' : undefined}><img src={`/art/v2/${art}.webp`} alt="" />{label}</Link>
       ))}
     </nav>
   );
