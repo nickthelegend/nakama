@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Linking, Pressable, Text, View } from 'react-native';
+import { Linking, Pressable, View } from 'react-native';
+import { Text } from './T';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';

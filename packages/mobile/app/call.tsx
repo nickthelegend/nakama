@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
+import { Text, TextInput } from '../components/T';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { TokenLogo } from '../components/TabBar';
 import { Empty, Body, Card, ErrorNote, H1, Kicker, Pill, useBusy } from '../components/ui';
 import { api, pct, usd } from '../lib/api';
 import { useApp } from '../lib/store';
@@ -95,6 +97,10 @@ export default function PostCall() {
               })}
             </ScrollView>
 
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10, paddingRight: 14, borderRadius: 16, backgroundColor: C.surface2 }}>
+              <TokenLogo token="BTC" size={22} />
+              <Text style={{ flex: 1, color: C.ink2, fontSize: 13.5, lineHeight: 18 }}>DeepBook Predict lists only BTC markets today; ETH, SUI and more appear when Predict adds them.</Text>
+            </View>
             <Kicker>Side</Kicker>
             <View style={{ flexDirection: 'row', gap: 6, padding: 6, borderRadius: 22, backgroundColor: C.panel3 }}>
               {(['up', 'down'] as const).map((d) => (

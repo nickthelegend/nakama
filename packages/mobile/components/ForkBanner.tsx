@@ -1,4 +1,5 @@
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+import { Text } from './T';
 import { useApp } from '../lib/store';
 import { C } from '../lib/theme';
 

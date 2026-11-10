@@ -18,10 +18,10 @@ export const C = {
   panel: '#1c1c1c', panel2: '#222222', panel3: '#262626',
   edge: '#1c1c1c', offEdge: '#2c2c2c', off: '#2c2c2c',
 };
-/** System sans (SF Pro on iOS) everywhere; Baloo 2 is reserved for the wordmark. */
+/** The web's faces: Baloo 2 (display), Urbanist (body), Space Mono (numbers). components/T.tsx applies them to every Text. */
 export const F = {
   wordmark: 'Baloo2_800ExtraBold',
-  mono: 'Menlo',
+  mono: 'SpaceMono_400Regular',
 };
 export const art = {
   logo: require('../assets/art/nakama-logo.webp'),

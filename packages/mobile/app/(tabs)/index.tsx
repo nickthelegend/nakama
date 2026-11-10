@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { Dimensions, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { Dimensions, Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { Text } from '../../components/T';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import Svg, { Circle, Path } from 'react-native-svg';

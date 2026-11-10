@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { ScrollView, Share, Text, View } from 'react-native';
+import { ScrollView, Share, View } from 'react-native';
+import { Text } from '../components/T';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
