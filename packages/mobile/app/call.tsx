@@ -80,9 +80,9 @@ export default function PostCall() {
                 const on = m.id === marketId;
                 const secs = Math.max(0, Math.round((m.expiryMs - Date.now()) / 1000));
                 return (
-                  <Pressable key={m.id} onPress={() => setMarketId(m.id)} style={{ paddingVertical: 10, paddingHorizontal: 14, borderRadius: 18, backgroundColor: on ? C.plum : '#fff', borderWidth: 2, borderColor: on ? C.plum : C.edge }}>
-                    <Text style={{ fontWeight: '800', fontSize: 15, color: on ? '#fff' : C.plum }}>BTC {m.cadence}m</Text>
-                    <Text style={{ fontWeight: '600', fontSize: 12, color: on ? '#e7d8ef' : C.ink3 }}>ends in {Math.floor(secs / 60)}:{String(secs % 60).padStart(2, '0')}</Text>
+                  <Pressable key={m.id} onPress={() => setMarketId(m.id)} style={{ paddingVertical: 10, paddingHorizontal: 14, borderRadius: 18, backgroundColor: on ? '#f5f5f5' : C.surface, borderWidth: 1, borderColor: on ? '#f5f5f5' : C.line2 }}>
+                    <Text style={{ fontWeight: '800', fontSize: 15, color: on ? '#141414' : '#fff' }}>BTC {m.cadence}m</Text>
+                    <Text style={{ fontWeight: '600', fontSize: 12, color: on ? '#5c5c5c' : C.ink3 }}>ends in {Math.floor(secs / 60)}:{String(secs % 60).padStart(2, '0')}</Text>
                   </Pressable>
                 );
               })}
@@ -102,7 +102,7 @@ export default function PostCall() {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Pill title="−50" size="sm" tone="ghost" onPress={() => nudge(-50)} />
               <TextInput value={strike} onChangeText={(t) => setStrike(t.replace(/[^0-9]/g, ''))} keyboardType="number-pad"
-                style={{ flex: 1, height: 52, borderRadius: 18, backgroundColor: '#fff', borderWidth: 2, borderColor: C.edge, textAlign: 'center', fontWeight: '800', fontSize: 22, color: C.plum }} />
+                style={{ flex: 1, height: 52, borderRadius: 18, backgroundColor: C.surface2, borderWidth: 1, borderColor: C.line2, textAlign: 'center', fontWeight: '800', fontSize: 22, color: C.plum }} />
               <Pill title="+50" size="sm" tone="ghost" onPress={() => nudge(50)} />
             </View>
             {market?.referencePrice ? <Body faint>Reference price {usd(market.referencePrice)}</Body> : null}
@@ -124,7 +124,7 @@ export default function PostCall() {
 
             <Kicker>Why</Kicker>
             <TextInput value={why} onChangeText={setWhy} placeholder="e.g. Green minute, momentum into the close" placeholderTextColor={C.ink3} maxLength={280} multiline
-              style={{ minHeight: 70, borderRadius: 18, backgroundColor: '#fff', borderWidth: 2, borderColor: C.edge, padding: 14, fontWeight: '600', fontSize: 15, color: C.ink, textAlignVertical: 'top' }} />
+              style={{ minHeight: 70, borderRadius: 18, backgroundColor: C.surface2, borderWidth: 1, borderColor: C.line2, padding: 14, fontWeight: '600', fontSize: 15, color: C.ink, textAlignVertical: 'top' }} />
             {post.error ? <ErrorNote text={post.error} /> : null}
             <Pill title="Post call to the crew" size="xl" icon={art.megaphone} busy={post.busy} disabled={!canPost}
               onPress={() => post.run(async () => {

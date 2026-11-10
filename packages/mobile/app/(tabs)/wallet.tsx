@@ -1,11 +1,12 @@
 import { useCallback, useState } from 'react';
-import { RefreshControl, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, Text, TextInput, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import * as Clipboard from 'expo-clipboard';
 import QRCode from 'react-native-qrcode-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Body, Card, Chip, ErrorNote, H1, H2, Kicker, Mono, Pill, useBusy } from '../../components/ui';
+import { Body, ErrorNote, Mono, Pill, useBusy } from '../../components/ui';
+import { TAB_SPACE, TokenLogo } from '../../components/TabBar';
 import { api, DEFAULT_API, LOCAL_API } from '../../lib/api';
 import { balances, type Balances } from '../../lib/sui';
 import { signTransactionBytes } from '../../lib/wallet';
@@ -13,6 +14,7 @@ import { useApp } from '../../lib/store';
 import { C, F, art } from '../../lib/theme';
 
 type Fund = { dryRun: { status: string; error: string | null; rpc: string }; transaction: string | null; mode: string };
+const isUrl = (t: string) => t.startsWith('http://') || t.startsWith('https://');
 
 export default function Wallet() {
   const app = useApp();
@@ -45,55 +47,54 @@ export default function Wallet() {
   const usdcOk = (bal?.usdc ?? 0) >= 2.02;
 
   return (
-    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: C.sun }}>
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 32, backgroundColor: C.cream, flexGrow: 1 }}
-        refreshControl={<RefreshControl refreshing={false} onRefresh={load} />}>
+    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: C.bg }}>
+      <ScrollView contentContainerStyle={{ padding: 20, gap: 16, paddingBottom: TAB_SPACE + 10 }}
+        refreshControl={<RefreshControl tintColor="#fff" refreshing={false} onRefresh={load} />}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <H1>Your wallet</H1>
-          <Chip text="Sui mainnet" tone="coral" />
+          <Text style={{ color: '#fff', fontSize: 30, fontWeight: '700', letterSpacing: -0.7 }}>Wallet</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, height: 32, paddingHorizontal: 10, borderRadius: 16, backgroundColor: C.surface2 }}>
+            <TokenLogo token="SUI" size={20} />
+            <Text style={{ color: C.ink2, fontWeight: '600', fontSize: 13 }}>Sui mainnet</Text>
+          </View>
         </View>
 
-        <Card style={{ alignItems: 'center', gap: 12 }}>
-          <Kicker>Send SUI and USDC here</Kicker>
-          <View style={{ padding: 12, borderRadius: 22, backgroundColor: '#fff', borderWidth: 3, borderColor: C.butter }}>
-            {addr ? <QRCode value={addr} size={190} color={C.plum2} backgroundColor="#fff" /> : null}
-          </View>
-          <Mono style={{ textAlign: 'center', fontSize: 12 }}>{addr}</Mono>
-          <Pill title={copied ? 'Copied' : 'Copy address'} size="sm" tone="butter" onPress={async () => { await Clipboard.setStringAsync(addr); setCopied(true); setTimeout(() => setCopied(false), 1500); }} />
-        </Card>
+        <View>
+          <Text style={{ color: C.ink2, fontSize: 17, fontWeight: '500' }}>Ready for taps</Text>
+          <Text style={{ color: '#fff', fontSize: 40, fontWeight: '700', letterSpacing: -1.2 }}>{bal ? `$${bal.usdc.toFixed(2)}` : '$–'}</Text>
+          <Text style={{ color: C.ink3, fontSize: 13 }}>{bal ? `Read from ${bal.source} · ${new Date(bal.at).toLocaleTimeString()}` : balErr ?? 'Reading mainnet…'}</Text>
+        </View>
 
-        <Card face={C.plum} edge="#22102b" style={{ gap: 12 }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={{ fontWeight: '800', fontSize: 20, color: '#fff' }}>Fund your wallet</Text>
-            <Image source={art.coin} style={{ width: 40, height: 40 }} />
-          </View>
-          <View style={{ flexDirection: 'row', gap: 10 }}>
-            <Balance label="SUI · for gas" value={bal ? bal.sui.toFixed(3) : '…'} ok={gasOk} need="~0.1 SUI" />
-            <Balance label="USDC · for taps" value={bal ? bal.usdc.toFixed(2) : '…'} ok={usdcOk} need="2 USDC per tap" />
-          </View>
-          {balErr ? <ErrorNote text={balErr} /> : null}
-          <Text style={{ fontWeight: '500', fontSize: 13.5, color: '#e7d8ef', lineHeight: 19 }}>
-            {bal && gasOk && usdcOk
-              ? 'Funded. Next, move USDC into your Predict account so taps can fill.'
-              : 'Send a little SUI for gas and some USDC (native Sui USDC) to the address above from an exchange or another wallet. Nakama never funds wallets for you.'}
+        <View style={{ backgroundColor: C.surface, borderRadius: 26, overflow: 'hidden' }}>
+          <TokenRow token="USDC" note={usdcOk ? 'Ready · 2 USDC per tap' : 'Needs 2 USDC per tap'} ok={usdcOk} value={bal ? bal.usdc.toFixed(2) : '–'} />
+          <TokenRow token="SUI" note={gasOk ? 'Ready for gas' : 'Needs ~0.1 SUI for gas'} ok={gasOk} value={bal ? bal.sui.toFixed(3) : '–'} border />
+        </View>
+        {balErr ? <ErrorNote text={balErr} /> : null}
+
+        <View style={{ backgroundColor: C.surface, borderRadius: 30, padding: 20, gap: 14, alignItems: 'center' }}>
+          <Text style={{ color: '#fff', fontSize: 22, fontWeight: '700', letterSpacing: -0.4, alignSelf: 'flex-start' }}>Deposit</Text>
+          <Text style={{ color: C.ink2, fontSize: 15, lineHeight: 21, alignSelf: 'flex-start' }}>
+            Send a little SUI for gas and native Sui USDC to this address from an exchange or another wallet. Nakama never funds wallets for you.
           </Text>
-          {bal ? <Text style={{ fontFamily: F.mono, fontSize: 11, color: '#bfa9cc' }}>Read from {bal.source} · {new Date(bal.at).toLocaleTimeString()}</Text> : null}
-        </Card>
+          <View style={{ padding: 14, borderRadius: 26, backgroundColor: '#fff' }}>
+            {addr ? <QRCode value={addr} size={196} color="#141414" backgroundColor="#fff" /> : null}
+          </View>
+          <Text style={{ fontFamily: F.mono, fontSize: 12, color: C.ink2, textAlign: 'center' }}>{addr}</Text>
+          <Pill title={copied ? 'Copied' : 'Copy address'} tone="white" onPress={async () => { await Clipboard.setStringAsync(addr); setCopied(true); setTimeout(() => setCopied(false), 1500); }} />
+        </View>
 
-        <Card style={{ gap: 10 }}>
-          <Kicker>Predict account</Kicker>
-          <H2>Deposit 3 USDC to trade</H2>
-          <Body>DeepBook Predict takes taps from a Predict account, not loose wallet USDC. The server builds the deposit and dry-runs it on mainnet; in live mode this phone signs it.</Body>
+        <View style={{ backgroundColor: C.surface, borderRadius: 26, padding: 20, gap: 10 }}>
+          <Text style={{ color: '#fff', fontSize: 20, fontWeight: '700' }}>Predict account</Text>
+          <Body>DeepBook Predict takes taps from a Predict account, not loose wallet USDC. The server builds a 3 USDC deposit and dry-runs it on mainnet; in live mode this phone signs it.</Body>
           {dep.error ? <ErrorNote text={dep.error} /> : null}
           {fund ? (
-            <Card face={fund.dryRun.status === 'success' ? C.mintSoft : C.pinkSoft} edge={fund.dryRun.status === 'success' ? '#b6ebd2' : '#f3b5d6'} style={{ gap: 4 }}>
-              <Kicker>Dry-run {fund.dryRun.status} · {fund.mode}</Kicker>
+            <View style={{ backgroundColor: fund.dryRun.status === 'success' ? C.upSoft : C.downSoft, borderRadius: 18, padding: 12, gap: 4 }}>
+              <Text style={{ color: fund.dryRun.status === 'success' ? C.mintInk : C.pinkInk, fontWeight: '700' }}>Dry-run {fund.dryRun.status} · {fund.mode}</Text>
               {fund.dryRun.error ? <Mono style={{ color: C.pinkInk }}>{fund.dryRun.error}</Mono> : null}
               <Mono>via {fund.dryRun.rpc}</Mono>
-            </Card>
+            </View>
           ) : null}
           {sent ? <Mono style={{ color: C.mintInk }}>Deposited: {sent}</Mono> : null}
-          <Pill title="Check deposit (dry-run)" tone="butter" busy={dep.busy} onPress={() => dep.run(async () => {
+          <Pill title="Check deposit (dry-run)" tone="ghost" busy={dep.busy} onPress={() => dep.run(async () => {
             setSent(null);
             const f = await api<Fund>('/fund', { address: addr, amount: 3, create: true }, 60000);
             setFund(f);
@@ -102,44 +103,45 @@ export default function Wallet() {
               setSent((await api<{ digest: string }>('/execute', { bytes: s.bytes, signature: s.signature }, 60000)).digest);
             }
           })} />
-        </Card>
+        </View>
 
-        <Card face={C.pinkSoft} edge="#f3b5d6" style={{ gap: 8 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <Image source={art.shield} style={{ width: 44, height: 44 }} />
-            <View style={{ flex: 1 }}>
-              <H2 style={{ fontSize: 18 }}>Back up your key</H2>
-              <Body style={{ fontSize: 13 }}>This wallet lives only on this phone. Lose the phone, lose the funds.</Body>
-            </View>
+        <Pressable onPress={() => router.push('/backup')} style={({ pressed }) => ({ backgroundColor: C.surface, borderRadius: 26, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14, opacity: pressed ? 0.85 : 1 })}>
+          <Image source={art.shield} style={{ width: 46, height: 46 }} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: '#fff', fontSize: 17, fontWeight: '700' }}>Back up your key</Text>
+            <Text style={{ color: C.ink2, fontSize: 14 }}>This wallet lives only on this phone.</Text>
           </View>
-          <Pill title="Backup and export" tone="plum" size="sm" onPress={() => router.push('/backup')} />
-        </Card>
+          <Text style={{ color: C.ink3, fontSize: 22 }}>›</Text>
+        </Pressable>
 
-        <Card style={{ gap: 8 }}>
-          <Kicker>Server</Kicker>
+        <View style={{ backgroundColor: C.surface, borderRadius: 26, padding: 18, gap: 10 }}>
+          <Text style={{ color: '#fff', fontSize: 17, fontWeight: '700' }}>Server</Text>
           <Mono>{app.base}</Mono>
           <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-            <Pill title="Hosted" size="sm" tone={app.base === DEFAULT_API ? 'coral' : 'ghost'} onPress={() => app.changeBase(DEFAULT_API)} />
-            <Pill title="Mac localhost:8817" size="sm" tone={app.base === LOCAL_API ? 'coral' : 'ghost'} onPress={() => app.changeBase(LOCAL_API)} />
+            <Pill title="Hosted" size="sm" tone={app.base === DEFAULT_API ? 'white' : 'ghost'} onPress={() => app.changeBase(DEFAULT_API)} />
+            <Pill title="Mac localhost:8817" size="sm" tone={app.base === LOCAL_API ? 'white' : 'ghost'} onPress={() => app.changeBase(LOCAL_API)} />
           </View>
           <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
             <TextInput value={custom} onChangeText={setCustom} placeholder="https://your-server/api" placeholderTextColor={C.ink3} autoCapitalize="none" autoCorrect={false}
-              style={{ flex: 1, height: 44, borderRadius: 14, backgroundColor: C.panel3, paddingHorizontal: 12, fontWeight: '600', color: C.ink }} />
-            <Pill title="Use" size="sm" tone="ghost" disabled={!/^https?:\/\//.test(custom)} onPress={() => app.changeBase(custom)} />
+              style={{ flex: 1, height: 44, borderRadius: 14, backgroundColor: C.surface2, paddingHorizontal: 12, color: C.ink, fontSize: 15 }} />
+            <Pill title="Use" size="sm" tone="ghost" disabled={!isUrl(custom)} onPress={() => app.changeBase(custom)} />
           </View>
           {app.lastPoll ? <Body faint style={{ fontSize: 12.5 }}>Crew check every 15 s · last {new Date(app.lastPoll.at).toLocaleTimeString()}{app.lastPoll.error ? ` · ${app.lastPoll.error}` : ''}</Body> : null}
-        </Card>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-function Balance({ label, value, ok, need }: { label: string; value: string; ok: boolean; need: string }) {
+function TokenRow({ token, note, ok, value, border }: { token: 'SUI' | 'USDC'; note: string; ok: boolean; value: string; border?: boolean }) {
   return (
-    <View style={{ flex: 1, borderRadius: 18, padding: 12, backgroundColor: 'rgba(255,255,255,0.1)', gap: 2 }}>
-      <Text style={{ fontWeight: '700', fontSize: 12, color: '#cdb9d8' }}>{label}</Text>
-      <Text style={{ fontWeight: '800', fontSize: 26, color: '#fff' }}>{value}</Text>
-      <Text style={{ fontWeight: '600', fontSize: 12, color: ok ? C.mint : C.butter }}>{ok ? 'Ready' : `Needs ${need}`}</Text>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderTopWidth: border ? 1 : 0, borderTopColor: C.line }}>
+      <TokenLogo token={token} size={42} />
+      <View style={{ flex: 1 }}>
+        <Text style={{ color: '#fff', fontSize: 17, fontWeight: '600' }}>{token}</Text>
+        <Text style={{ color: ok ? C.mintInk : C.ink2, fontSize: 13.5 }}>{note}</Text>
+      </View>
+      <Text style={{ color: '#fff', fontSize: 19, fontWeight: '700' }}>{value}</Text>
     </View>
   );
 }

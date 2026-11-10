@@ -7,6 +7,7 @@ import { Body, Card, Chip, Empty, ErrorNote, H1, Kicker } from '../../components
 import { api } from '../../lib/api';
 import { useApp } from '../../lib/store';
 import { C, F, art, pick, short } from '../../lib/theme';
+import { TAB_SPACE } from '../../components/TabBar';
 import type { Crew, History } from '../../lib/types';
 
 type Row = { address: string; crewCalls: number; crewWins: number; chain: History | null; chainErr: string | null };
@@ -49,8 +50,8 @@ export default function Board() {
 
   const ranked = [...rows].sort((a, b) => b.crewWins - a.crewWins || (b.chain?.record.wins ?? 0) - (a.chain?.record.wins ?? 0));
   return (
-    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: C.sun }}>
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 32, backgroundColor: C.cream, flexGrow: 1 }}>
+    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: C.bg }}>
+      <ScrollView contentContainerStyle={{ padding: 20, gap: 14, paddingBottom: TAB_SPACE + 10 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <Image source={art.trophy} style={{ width: 52, height: 52 }} />
           <View style={{ flex: 1 }}>
@@ -61,12 +62,12 @@ export default function Board() {
         {error ? <ErrorNote text={error} /> : null}
         {!id ? <Card><Empty title="No crew yet" body="Join or create a crew in Rooms." /></Card> : null}
         {crew && crew.calls.every((x) => x.status !== 'settled') ? (
-          <Chip text="No settled crew calls yet · crew wins appear after Pyth settles" tone="butter" />
+          <Body faint style={{ fontSize: 13.5 }}>No settled crew calls yet. Crew wins appear once Pyth settles a call; the on-chain record below is each member’s real Predict history.</Body>
         ) : null}
         {ranked.map((r, i) => (
-          <Card key={r.address} face={i === 0 && r.crewWins > 0 ? C.butterSoft : '#fff'} edge={i === 0 && r.crewWins > 0 ? C.butterEdge : C.edge} style={{ gap: 8, padding: 14 }}>
+          <Card key={r.address} face={i === 0 && r.crewWins > 0 ? 'rgba(255,111,89,0.14)' : C.surface} edge={i === 0 && r.crewWins > 0 ? C.butterEdge : C.edge} style={{ gap: 8, padding: 14 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <Text style={{ fontWeight: '800', fontSize: 22, color: C.coral, width: 28 }}>{i + 1}</Text>
+              <Text style={{ fontWeight: '800', fontSize: 22, color: i === 0 ? C.coral : C.ink3, width: 28 }}>{i + 1}</Text>
               <Image source={pick(art.avatars, r.address)} style={{ width: 42, height: 42, borderRadius: 21 }} />
               <View style={{ flex: 1 }}>
                 <Text style={{ fontWeight: '800', fontSize: 17, color: C.plum }}>{r.address.toLowerCase() === app.address?.toLowerCase() ? 'You' : short(r.address)}</Text>
@@ -75,7 +76,7 @@ export default function Board() {
               {i === 0 && r.crewWins > 0 ? <Image source={art.crown} style={{ width: 34, height: 34 }} /> : null}
             </View>
             <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
-              <Kicker>On-chain Predict record</Kicker>
+              <Text style={{ color: C.ink3, fontSize: 13, fontWeight: '600', alignSelf: 'center' }}>On-chain Predict</Text>
               {r.chain ? (
                 <>
                   <Chip text={`${r.chain.record.wins}/${r.chain.record.calls} wins`} tone="mint" />

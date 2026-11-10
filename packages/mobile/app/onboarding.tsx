@@ -3,7 +3,7 @@ import { ScrollView, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Body, Card, ErrorNote, H1, H2, Kicker, Mono, Pill, useBusy } from '../components/ui';
+import { Wordmark, Body, Card, ErrorNote, H1, H2, Kicker, Mono, Pill, useBusy } from '../components/ui';
 import { askNotificationPermission, useApp } from '../lib/store';
 import { C, art, short } from '../lib/theme';
 
@@ -18,8 +18,8 @@ export default function Onboarding() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.sun }}>
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40, gap: 18, flexGrow: 1 }}>
-        <View style={{ alignItems: 'center', marginTop: 4 }}>
-          <Image source={art.logo} style={{ width: 210, height: 140 }} contentFit="contain" />
+        <View style={{ alignItems: 'center', marginTop: 24, marginBottom: 8 }}>
+          <Wordmark size={44} />
         </View>
         <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 8 }}>
           {[0, 1, 2].map((i) => (

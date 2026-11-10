@@ -4,7 +4,8 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Body, Card, Chip, Empty, ErrorNote, H2, Pill, useBusy } from '../../components/ui';
-import { CallCard } from '../../components/CallCard';
+import { CallCard, Tri } from '../../components/CallCard';
+import { TAB_SPACE } from '../../components/TabBar';
 import { api, dirWord, usd } from '../../lib/api';
 import { useApp } from '../../lib/store';
 import { C, F, art, pick, short } from '../../lib/theme';
@@ -67,8 +68,12 @@ export default function CrewRoom() {
           <Text style={{ fontWeight: '700', fontSize: 12, color: C.ink3, marginHorizontal: 8 }}>
             {mine ? 'You called it' : `${short(x.caller)} called it`}{x.createdAt ? ` · ${new Date(x.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
           </Text>
-          <View style={{ width: '94%' }}>
-            <CallCard call={x} me={me} member={member} onChanged={load} />
+          <View style={{ width: x.status === 'live' && x.expiryMs > Date.now() ? '94%' : '80%' }}>
+            {x.status === 'live' && x.expiryMs > Date.now() ? (
+              <CallCard call={x} me={me} member={member} onChanged={load} members={crew?.members.length} past={crew?.calls.filter((y) => y.status === 'settled')} />
+            ) : (
+              <ClosedCall x={x} mine={mine} />
+            )}
           </View>
         </View>
       ),
@@ -78,8 +83,8 @@ export default function CrewRoom() {
   });
 
   return (
-    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: C.sun }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: C.sun }}>
+    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: C.bg }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: C.bg, borderBottomWidth: 1, borderBottomColor: C.line }}>
         <Image source={pick(art.crews, id)} style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: '#fff' }} />
         <View style={{ flex: 1 }}>
           <H2 style={{ fontSize: 20 }} >{crew?.name ?? 'Loading crew…'}</H2>
@@ -99,7 +104,7 @@ export default function CrewRoom() {
           ) : null}
         </ScrollView>
         {crew && !member ? (
-          <View style={{ padding: 14, backgroundColor: '#fff', gap: 8 }}>
+          <View style={{ padding: 14, paddingBottom: TAB_SPACE, backgroundColor: C.bg, gap: 8 }}>
             {join.error ? <ErrorNote text={join.error} /> : null}
             <Pill title="Join this crew" size="xl" busy={join.busy} onPress={() => join.run(async () => {
               const c = await api<Crew>(`/crews/${id}/join`, { address: me });
@@ -109,14 +114,14 @@ export default function CrewRoom() {
             <Body faint style={{ textAlign: 'center', fontSize: 12.5 }}>Joins with your in-app address {short(me)}. Nothing is paid to join.</Body>
           </View>
         ) : crew ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: C.line }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10, paddingHorizontal: 14, marginBottom: TAB_SPACE - 14, backgroundColor: C.bg }}>
             <TextInput
               value={why}
               onChangeText={setWhy}
               placeholder="Your call… why BTC moves next"
               placeholderTextColor={C.ink3}
               maxLength={280}
-              style={{ flex: 1, minHeight: 46, borderRadius: 23, backgroundColor: C.panel3, paddingHorizontal: 16, fontWeight: '600', fontSize: 15, color: C.ink }}
+              style={{ flex: 1, minHeight: 50, borderRadius: 25, backgroundColor: C.surface2, borderWidth: 1, borderColor: C.line2, paddingHorizontal: 16, fontWeight: '600', fontSize: 15, color: C.ink }}
             />
             <Pill title="Call it" size="sm" onPress={() => { router.push({ pathname: '/call', params: { id, why } }); setWhy(''); }} />
           </View>
@@ -131,6 +136,23 @@ function SystemLine({ icon, text, sub }: { icon: any; text: string; sub?: string
     <View style={{ flexDirection: 'row', alignSelf: 'center', alignItems: 'center', gap: 8, backgroundColor: C.panel3, borderRadius: 999, paddingVertical: 5, paddingLeft: 5, paddingRight: 14, maxWidth: '92%' }}>
       <Image source={icon} style={{ width: 26, height: 26, borderRadius: 13 }} />
       <Text style={{ fontWeight: '600', fontSize: 13, color: C.ink2, flexShrink: 1 }}>{text}{sub ? ` · ${sub}` : ''}</Text>
+    </View>
+  );
+}
+
+function ClosedCall({ x, mine }: { x: import('../../lib/types').Call; mine: boolean }) {
+  const hits = x.orders.filter((o) => o.hit).length;
+  return (
+    <View style={{ backgroundColor: mine ? 'rgba(255,111,89,0.16)' : C.surface, borderRadius: 20, borderTopRightRadius: mine ? 6 : 20, borderTopLeftRadius: mine ? 20 : 6, padding: 14, gap: 4 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <Tri up={x.setup.direction !== 'down'} color={x.setup.direction === 'down' ? C.down : C.up} />
+        <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>BTC {dirWord(x.setup.direction)} {usd(x.strike)}</Text>
+        <Text style={{ color: C.ink3, fontWeight: '600', fontSize: 13 }}>· {x.setup.cadence}m</Text>
+      </View>
+      <Text style={{ color: C.ink2, fontSize: 14 }} numberOfLines={2}>“{x.why}”</Text>
+      <Text style={{ color: C.ink3, fontSize: 13, fontWeight: '600' }}>
+        {x.status === 'settled' ? `Settled by Pyth · ${hits}/${x.orders.length} won` : `Closed · ${x.orders.length} tapped in`}
+      </Text>
     </View>
   );
 }
