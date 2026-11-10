@@ -25,6 +25,13 @@ export const F = {
 };
 export const art = {
   logo: require('../assets/art/nakama-logo.webp'),
+  onboard1: require('../assets/art/nakama-onboard-1.webp'),
+  onboard2: require('../assets/art/nakama-onboard-2.webp'),
+  heroPhone: require('../assets/art/nakama-mobile-hero.webp'),
+  tapIn: require('../assets/art/nakama-tap-in.webp'),
+  emptyCrew: require('../assets/art/nakama-empty-crew.webp'),
+  entryClosed: require('../assets/art/nakama-entry-closed.webp'),
+  podium: require('../assets/art/nakama-board-podium.webp'),
   mascot: require('../assets/art/nakama-mascot.webp'),
   cheer: require('../assets/art/nakama-mascot-cheer.webp'),
   sad: require('../assets/art/nakama-mascot-sad.webp'),

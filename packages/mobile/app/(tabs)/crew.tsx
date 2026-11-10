@@ -54,7 +54,7 @@ export default function Crews() {
         {crews === null && app.crews.length ? <Skeleton rows={3} /> : null}
         {!app.crews.length || (crews && !crews.length) ? (
           <View style={{ backgroundColor: C.surface, borderRadius: 26 }}>
-            <Empty title="No crews yet" body="Start a crew for your friends, or join one with an invite QR or link." action={<Pill title="Create a crew" onPress={() => router.push('/create')} style={{ marginTop: 6 }} />} />
+            <Empty image={art.emptyCrew} title="No crews yet" body="Start a crew for your friends, or join one with an invite QR or link." action={<Pill title="Create a crew" onPress={() => router.push('/create')} style={{ marginTop: 6 }} />} />
           </View>
         ) : null}
         {sorted.map((c) => {

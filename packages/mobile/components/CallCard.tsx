@@ -147,7 +147,10 @@ export function CallCard({ call, me, member, onChanged, crewName, members, past 
           {p != null ? <View style={{ flex: Math.max(0.02, 1 - p), borderRadius: 3, backgroundColor: C.down }} /> : null}
         </View>
         {live && odds && odds.inBand === false ? (
-          <Text style={{ fontWeight: '600', fontSize: 13, color: '#b3261e' }}>Outside Predict's 15–50% entry band: entry closed for now</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Image source={art.entryClosed} style={{ width: 34, height: 34 }} contentFit="contain" />
+            <Text style={{ fontWeight: '600', fontSize: 13, color: '#b3261e', flex: 1 }}>Outside Predict's 15–50% entry band: entry closed for now</Text>
+          </View>
         ) : null}
 
         {/* past + action */}

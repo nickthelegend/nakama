@@ -10,17 +10,36 @@
     "backgroundColor": "#141414",
     "android": {
       "package": "xyz.nakama.crew",
-      "adaptiveIcon": { "foregroundImage": "./assets/icon.png", "backgroundColor": "#FFE3A3" },
-      "permissions": ["CAMERA", "POST_NOTIFICATIONS"]
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#FFE3A3"
+      },
+      "permissions": [
+        "CAMERA",
+        "POST_NOTIFICATIONS"
+      ]
     },
     "plugins": [
       "expo-router",
       "expo-secure-store",
       "expo-font",
       "expo-image",
-      ["expo-camera", { "cameraPermission": "Nakama scans crew invite QR codes." }],
-      ["expo-notifications", { "color": "#FF6F59" }]
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Nakama scans crew invite QR codes."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#FF6F59"
+        }
+      ],
+      "expo-background-task"
     ],
-    "experiments": { "typedRoutes": false }
+    "experiments": {
+      "typedRoutes": false
+    }
   }
 }

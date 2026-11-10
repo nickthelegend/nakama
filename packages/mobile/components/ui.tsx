@@ -81,10 +81,10 @@ export const Body = ({ children, style, faint }: { children: ReactNode; style?: 
 export const Mono = ({ children, style }: { children: ReactNode; style?: StyleProp<TextStyle> }) => <Text style={[s.mono, style]}>{children}</Text>;
 
 /** Designed empty / setup / error state with the lucky cat. */
-export function Empty({ title, body, mood = 'sleep', action }: { title: string; body?: string; mood?: 'sleep' | 'sad' | 'cheer'; action?: ReactNode }) {
+export function Empty({ title, body, mood = 'sleep', action, image }: { title: string; body?: string; mood?: 'sleep' | 'sad' | 'cheer'; action?: ReactNode; image?: any }) {
   return (
     <View style={{ alignItems: 'center', paddingVertical: 18, paddingHorizontal: 12, gap: 8 }}>
-      <Image source={mood === 'sad' ? art.sad : mood === 'cheer' ? art.cheer : art.empty} style={{ width: 120, height: 120 }} contentFit="contain" />
+      <Image source={image ?? (mood === 'sad' ? art.sad : mood === 'cheer' ? art.cheer : art.empty)} style={{ width: image ? 160 : 120, height: image ? 160 : 120 }} contentFit="contain" />
       <H2 style={{ textAlign: 'center' }}>{title}</H2>
       {body ? <Body style={{ textAlign: 'center' }}>{body}</Body> : null}
       {action}

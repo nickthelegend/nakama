@@ -53,7 +53,7 @@ export default function Board() {
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: C.bg }}>
       <ScrollView contentContainerStyle={{ padding: 20, gap: 14, paddingBottom: TAB_SPACE + 10 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <Image source={art.trophy} style={{ width: 52, height: 52 }} />
+          <Image source={art.podium} style={{ width: 64, height: 64 }} contentFit="contain" />
           <View style={{ flex: 1 }}>
             <H1>Scoreboard</H1>
             <Body style={{ fontSize: 13 }}>{crew ? crew.name : 'Open a crew to see who is right'}</Body>
