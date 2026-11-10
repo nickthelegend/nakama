@@ -104,7 +104,15 @@ export function Notice({ children, error }: { children: ReactNode; error?: boole
   return <div className={`notice ${error ? 'notice-error' : ''}`} role={error ? 'alert' : 'status'}>{children}</div>;
 }
 
+/** Set from /status: on a LOCAL FORK, digests open the app's own fork transaction page (SuiScan cannot see them). */
+export const net = { fork: false };
 export function Tx({ digest, label }: { digest: string; label?: string }) {
+  if (net.fork)
+    return (
+      <a className="hash hash-fork" href={`/tx?d=${digest}`} target="_blank" rel="noreferrer" title={`${label ?? 'transaction'} ${digest} on the LOCAL FORK of Sui mainnet (not on SuiScan)`} data-film="fork-digest">
+        <span className="fork-tag">LOCAL FORK</span>{label ? `${label} · ` : ''}{digest.slice(0, 6)}…{digest.slice(-4)}
+      </a>
+    );
   return (
     <a className="hash" href={`https://suiscan.xyz/mainnet/tx/${digest}`} target="_blank" rel="noreferrer" title={`${label ?? 'transaction'} ${digest} on SuiScan (mainnet)`}>
       {label ? `${label} · ` : ''}{digest.slice(0, 6)}…{digest.slice(-4)}

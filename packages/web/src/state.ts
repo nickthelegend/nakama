@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useCurrentAccount, useCurrentWallet, useDAppKit } from '@mysten/dapp-kit-react';
 import { DEMO_WALLET_NAME } from './demo-wallet';
+import { net } from './ui';
 
 export type Direction = 'up' | 'down' | 'range';
 export type Market = {
@@ -158,7 +159,9 @@ export function useNakama() {
   }, [crewId]);
 
   const refresh = async () => {
-    setStatus(await api('/status'));
+    const st = await api<Status>('/status');
+    net.fork = Boolean(st.fork);
+    setStatus(st);
     if (crewId) {
       try {
         const c = await api<Crew>(`/crews/${crewId}`);
@@ -242,7 +245,8 @@ export function useNakama() {
   }, [active?.id, owner, joined]);
 
   useEffect(() => {
-    if (!crew || !status || status.memoryConfigured) return;
+    // On a LOCAL FORK there is no member history to scan, so the board counts only this crew's own calls.
+    if (!crew || !status || status.memoryConfigured || status.fork) return;
     let cancelled = false;
     for (const address of crew.members) {
       api<History>(`/members/${address}/history`)
@@ -299,10 +303,14 @@ export function useNakama() {
       const c = await api<Crew>('/crews', { name, readOnlyDemo: !account });
       localStorage.setItem('nakama-crew', c.id);
       rememberCrew(c);
+      // Stay in the page (a reload would drop the connected wallet): switch the crew and update the URL.
       const url = new URL(location.href);
       if (url.pathname === '/') url.pathname = '/app';
       url.searchParams.set('crew', c.id);
-      location.href = url.toString();
+      history.pushState(null, '', url);
+      dispatchEvent(new PopStateEvent('popstate'));
+      setCrew(c);
+      setCrewId(c.id);
     });
 
   const join = () =>
@@ -374,7 +382,7 @@ export function useNakama() {
         : { address: a, calls: orders.length, wins: orders.filter((o) => o.hit).length, pnl: orders.reduce((n, o) => n + (o.pnl ?? 0), 0), streak, history: null };
     }) ?? [];
   // Crown goes to the member with the best real P&L, only once two or more records are loaded and it is positive.
-  const boardLoaded = (m: BoardRow) => Boolean(status?.memoryConfigured || m.history);
+  const boardLoaded = (m: BoardRow) => Boolean(status?.memoryConfigured || status?.fork || m.history);
   const loaded = board.filter(boardLoaded);
   const best = loaded.length > 1 ? loaded.reduce((a, b) => (b.pnl > a.pnl ? b : a)) : null;
   const leader = best && best.pnl > 0 ? best.address : null;
@@ -386,7 +394,9 @@ export function useNakama() {
   const crewFailed = !!crewId && !crew && !!crewError;
 
   const next1 = openMarkets.filter((m) => m.cadence === 1).sort((a, b) => a.expiryMs - b.expiryMs)[0];
-  const next5 = openMarkets.filter((m) => m.cadence === 5).sort((a, b) => a.expiryMs - b.expiryMs)[0];
+  // A 5-minute call needs time for the whole crew to tap in: skip a market with under two minutes left when a later one is open.
+  const fives = openMarkets.filter((m) => m.cadence === 5).sort((a, b) => a.expiryMs - b.expiryMs);
+  const next5 = fives.find((m) => m.expiryMs - now > 120_000) ?? fives[0];
   // The composer offers the next 1-minute and the next 5-minute market; keep the pick on one of them, same cadence.
   useEffect(() => {
     if (!next1 && !next5) return;

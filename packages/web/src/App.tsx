@@ -5,6 +5,7 @@ import { Landing } from './pages/Landing';
 import { Lobby } from './pages/Lobby';
 import { Room } from './pages/Room';
 import { Board } from './pages/Board';
+import { TxPage } from './pages/TxPage';
 
 export function App() {
   const [path, setPath] = useState(location.pathname);
@@ -26,6 +27,7 @@ export function App() {
   if (path === '/app') page = <Lobby n={n} />;
   else if (path === '/room') page = <Room n={n} />;
   else if (path === '/board') page = <Board n={n} />;
+  else if (path === '/tx') page = <TxPage n={n} />;
   else page = <Landing n={n} />;
   return (
     <>

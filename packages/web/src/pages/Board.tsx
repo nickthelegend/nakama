@@ -1,5 +1,5 @@
 import type { N } from '../state';
-import { CrewState, MarketsTable, Playbook, ResultCard, Scoreboard } from '../parts';
+import { MemoryPanel, CrewState, MarketsTable, Playbook, ResultCard, Scoreboard } from '../parts';
 import { Link } from '../ui';
 
 /** The crew scoreboard: who's actually right, the playbook from Walrus and the open markets. */
@@ -25,6 +25,7 @@ export function Board({ n }: { n: N }) {
           </div>
           <div className="stack">
             <div className="season-art"><img src="/art/v2/nakama-og.webp" alt="The Nakama crew celebrating with the lucky cat" /></div>
+            <MemoryPanel n={n} />
             <Playbook n={n} />
           </div>
         </div>

@@ -1,5 +1,5 @@
 import type { N } from '../state';
-import { CallBuilder, CrewCard, CrewState, Duo, EventRow, FundCard, LiveCall, PlayerCard, Receipts, RecentCalls, ResultCard, SetupNotice, TapButton, Toast, callTitle, crewEvents } from '../parts';
+import { MemoryPanel, CallBuilder, CrewCard, CrewState, Duo, EventRow, FundCard, LiveCall, PlayerCard, Receipts, RecentCalls, ResultCard, SetupNotice, TapButton, Toast, callTitle, crewEvents } from '../parts';
 import { ModeBadge } from '../hud';
 import { CrewAvatar, Ic, Link, SuiMark, TokenLogo, short, usd } from '../ui';
 
@@ -33,6 +33,7 @@ export function Lobby({ n }: { n: N }) {
           </div>
           <ResultCard n={n} />
           <Receipts n={n} />
+          {crew && <MemoryPanel n={n} />}
           {crew && (
             <div className="l2-bottom">
               <CallBuilder n={n} />

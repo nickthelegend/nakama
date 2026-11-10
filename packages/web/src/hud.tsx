@@ -57,6 +57,9 @@ export function Hud({ path, n }: { path: string; n: N }) {
   const crew = n.crew;
   return (
     <header className="hud">
+      <div className={`net-ribbon ${n.forkMode ? 'fork' : ''}`} data-film="net-ribbon">
+        {n.forkMode ? <><b>LOCAL FORK</b> of Sui mainnet · no real funds · {String(n.status?.rpc ?? '').replace('LOCAL FORK of Sui mainnet @ ', '')}</> : <><b>LIVE</b> · Sui mainnet</>}
+      </div>
       <div className={`hud-in ${path === '/room' ? 'wide' : ''}`}>
         <Logo />
         <nav className="hud-tabs" aria-label="Main">

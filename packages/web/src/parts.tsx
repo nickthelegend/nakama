@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ConnectButton } from '@mysten/dapp-kit-react/ui';
 import type { Call, Crew, Direction, Market, N, Order } from './state';
 import { api, dirWord, pct } from './state';
@@ -26,6 +26,7 @@ export function LiveCall({ n, call }: { n: N; call: Call }) {
         <CallRing seconds={s} total={call.setup.cadence * 60} label={n.clock(call.expiryMs)} />
       </div>
       {call.why && <p className="cc-why">“{call.why}”</p>}
+      <a className="cc-market" href={`https://suiscan.xyz/mainnet/object/${call.marketId}`} target="_blank" rel="noreferrer" data-film="market-link">DeepBook Predict market {short(call.marketId)} · on SuiScan (Sui mainnet)</a>
       <div className="cc-odds">
         {call.setup.direction === 'range' ? (
           <small className="faint">Range calls have no single-strike odds; Predict quotes them when you tap.</small>
@@ -49,6 +50,9 @@ export function LiveCall({ n, call }: { n: N; call: Call }) {
         </div>
       )}
       <Recalled ids={call.recalled} />
+      {n.forkMode && call.orders.length > 0 && (
+        <p className="cc-fork" data-film="fork-limit">On the fork these orders stay <b>queued</b>: fills and Pyth settlement need DeepBook’s keeper, which only runs on mainnet.</p>
+      )}
       <ModeBadge n={n} />
     </div>
   );
@@ -104,7 +108,7 @@ export function Toast({ n }: { n: N }) {
   return (
     <div className={`toast3 ${bad ? 'bad' : ok ? 'ok' : ''}`} role="status" data-film="toast">
       <img src={bad ? '/art/v2/nakama-mascot-sad.webp' : ok ? '/art/v2/nakama-mascot-cheer.webp' : '/art/v2/nakama-mascot.webp'} alt="" />
-      <span><small>{n.message}</small></span>
+      <span>{ok && /^Order queued: (\S+)$/.test(n.message) ? <><b>Order queued{n.forkMode ? ' on the LOCAL FORK' : ''}</b><small>Signed in your own wallet · <Tx digest={n.message.split(': ')[1]} label="order" /></small></> : <small>{n.message}</small>}</span>
     </div>
   );
 }
@@ -155,7 +159,7 @@ export function PlayerCard({ n }: { n: N }) {
     if (!crew) return;
     void navigator.clipboard?.writeText(`${location.origin}/app?crew=${crew.id}`);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setTimeout(() => setCopied(false), 8000);
   };
   return (
     <aside className="player2 c3" aria-label="Your player" data-film="player">
@@ -175,8 +179,9 @@ export function PlayerCard({ n }: { n: N }) {
       </div>
       {crew && !n.joined && <TapButton n={n} />}
       {crew && n.joined && (
-        <button className="b3 b3-plum" onClick={copy} data-film="invite"><Ic name={copied ? 'check' : 'copy'} size={16} />{copied ? 'INVITE COPIED' : 'COPY INVITE LINK'}</button>
+        <button className="b3 b3-plum" onClick={copy} data-film="invite" data-invite={`${location.origin}/app?crew=${crew.id}`}><Ic name={copied ? 'check' : 'copy'} size={16} />{copied ? 'INVITE COPIED' : 'COPY INVITE LINK'}</button>
       )}
+      {crew && n.joined && copied && <span className="invite-url mono" data-film="invite-url">{`${location.origin}/app?crew=${crew.id}`}</span>}
       <div className="connect"><ConnectButton /></div>
       {!n.account && <ViewAs n={n} />}
     </aside>
@@ -280,8 +285,8 @@ export function Receipts({ n }: { n: N }) {
             <span className="till-c"><small>MIN TAP</small><b className="row" style={{ gap: 6 }}><TokenLogo sym="USDC" size={20} />2</b></span>
           </>
         )}
-        <span className={`stamp ${n.status?.memoryConfigured ? '' : 'bad'}`} title={n.status?.memoryConfigured ? 'Joins, calls and results are written to Walrus Memory mainnet' : 'Walrus Memory keys are not set on this server'}>
-          {n.status?.memoryConfigured ? 'WALRUS MEMORY ON' : 'MEMORY: SETUP REQUIRED'}
+        <span className={`stamp ${n.status?.memoryConfigured && !n.forkMode ? '' : 'bad'}`} title={n.forkMode ? 'Nothing from the LOCAL FORK is written to Walrus mainnet' : n.status?.memoryConfigured ? 'Joins, calls and results are written to Walrus Memory mainnet' : 'Walrus Memory keys are not set on this server'} data-film="memory-stamp">
+          {n.forkMode ? 'WALRUS: NOT WRITTEN ON FORK' : n.status?.memoryConfigured ? 'WALRUS MEMORY ON' : 'MEMORY: SETUP REQUIRED'}
         </span>
       </div>
       {orders.length > 0 && (
@@ -542,7 +547,7 @@ export function FundCard({ n }: { n: N }) {
     if (!plan?.transaction) return;
     const signedTx = await n.kit.signTransaction({ transaction: plan.transaction });
     const sent = await api<{ digest: string }>('/execute', { bytes: signedTx.bytes, signature: signedTx.signature });
-    setPlan(null); setNote(`Deposited${n.forkMode ? ' on the local fork' : ''}: ${sent.digest}`);
+    setPlan(null); setNote(`Deposited${n.forkMode ? ' on the LOCAL FORK' : ''}: ${sent.digest}`);
   });
   return (
     <section className="c3 fund3" aria-label="Fund your Predict account">
@@ -558,12 +563,20 @@ export function FundCard({ n }: { n: N }) {
       {plan?.transaction && n.writesOn && (
         <button className="b3" disabled={busy} onClick={sign}>{busy ? 'Signing…' : n.forkMode ? 'Sign and deposit (local fork, no real funds)' : 'Sign and deposit real USDC'}</button>
       )}
-      {note && <p className="mini" style={{ overflowWrap: 'anywhere' }}>{note}</p>}
+      {note && (/^Deposited.*: (\S+)$/.test(note)
+        ? <p className="mini fund-ok" data-film="fund-digest"><b>{note.split(': ')[0]}</b> <Tx digest={note.split(': ')[1]} label="deposit" /></p>
+        : <p className="mini" style={{ overflowWrap: 'anywhere' }}>{note}</p>)}
     </section>
   );
 }
 
 export function SetupNotice({ n }: { n: N }) {
+  if (n.forkMode)
+    return (
+      <div className="fork-note" role="status" data-film="fork-note">
+        <b>LOCAL FORK of Sui mainnet · no real funds.</b> Real DeepBook Predict code runs on a copy of mainnet. Walrus memories are <b>not written on the fork</b>, so nothing here is remembered.
+      </div>
+    );
   if (!n.status?.setup.length) return null;
   return (
     <Notice>
@@ -587,4 +600,59 @@ export function CrewState({ n }: { n: N }) {
       </div>
     );
   return null;
+}
+
+type MemoryRow = { namespace: string; blobId: string; memory: { kind: string; address?: string; hit?: boolean; pnl?: number; size?: number; callId?: string; createdAt: string; best?: string; why?: string } };
+/** Every Walrus memory of this crew and its members, recalled live from Walrus mainnet with blob IDs. Read-only. */
+export function MemoryPanel({ n }: { n: N }) {
+  const crew = n.crew;
+  const [rows, setRows] = useState<MemoryRow[] | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  useEffect(() => {
+    setRows(null); setErr(null);
+    if (!crew || n.forkMode) return;
+    api<{ memories: MemoryRow[] }>(`/crews/${crew.id}/memories`).then((r) => setRows(r.memories)).catch((e) => setErr(String(e.message ?? e)));
+  }, [crew?.id, n.forkMode]);
+  if (!crew) return null;
+  const wins = rows?.filter((r) => r.memory.kind === 'result' && r.memory.hit).length ?? 0;
+  const results = rows?.filter((r) => r.memory.kind === 'result').length ?? 0;
+  return (
+    <section className="c3 mem3" aria-label="Crew memory on Walrus" data-film="memories">
+      <div className="sec-head">
+        <div><span className="k">{n.forkMode ? 'WALRUS MEMORY · LOCAL FORK' : 'WALRUS MEMORY · SUI MAINNET · RECALLED LIVE'}</span><h2>{n.forkMode ? 'Not written on the fork' : rows ? `${rows.length} crew memories` : 'Crew memory'}</h2></div>
+        <img className="sec-ic" src="/art/v2/nakama-icon-gem.webp" alt="" />
+      </div>
+      {n.forkMode ? (
+        <p className="mini">This crew lives on a LOCAL FORK, so its joins, calls and results are <b>not</b> written to Walrus mainnet. On mainnet every one becomes a memory.</p>
+      ) : err ? (
+        <p className="mini down">{err}</p>
+      ) : !rows ? (
+        <div className="skeleton" style={{ height: 120 }} />
+      ) : rows.length === 0 ? (
+        <p className="mini">No memories yet. Joins, calls and settled results are written here.</p>
+      ) : (
+        <>
+          <p className="mini">Joins and settled Predict trades, each a blob on Walrus mainnet{results ? ` · ${wins} of ${results} trades won` : ''}.</p>
+          <div className="mem-list">
+            {rows.map((r) => {
+              const m = r.memory;
+              const fill = m.callId?.startsWith('chain:') ? m.callId.slice(6) : null;
+              const [tag, tone] = m.kind === 'membership' ? ['JOINED', 'butter'] : m.kind === 'result' ? (m.hit ? ['WIN', 'mint'] : ['LOSS', 'pink']) : [m.kind.toUpperCase(), 'coral'];
+              return (
+                <div key={r.blobId} className={`mem tone-${tone}`} data-film="memory">
+                  <span className="mem-tag">{tag}</span>
+                  {m.address && <Avatar address={m.address} size={26} />}
+                  <span className="mem-main"><b className="mono">{m.address ? short(m.address) : r.namespace}</b><small>{m.kind === 'result' ? `${m.size ?? ''} USDC · ${m.pnl != null ? signed(m.pnl) : ''} USDC` : m.kind === 'membership' ? 'joined the crew' : (m.best ?? m.why ?? '')} · {new Date(m.createdAt).toISOString().slice(0, 10)}</small></span>
+                  <span className="mem-links">
+                    <a className="blob" href={`https://walruscan.com/mainnet/blob/${r.blobId}`} target="_blank" rel="noreferrer" data-film="memory-blob">{short(r.blobId)} <Ic name="link" size={12} /></a>
+                    {fill && <a className="hash" href={`https://suiscan.xyz/mainnet/tx/${fill}`} target="_blank" rel="noreferrer" data-film="memory-fill">fill · {fill.slice(0, 6)}…</a>}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </section>
+  );
 }
