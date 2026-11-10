@@ -2,7 +2,7 @@
 # Deploy the web app to Vercel (project "nakama", production) as a static build that talks to the hosted API.
 #   deploy/vercel.sh
 # The page calls https://nakama.201-18-198-162.sslip.io/api directly (the server answers CORS *), so Vercel only
-# serves files; SPA routes (/app, /board, /tx, /rooms) fall back to index.html.
+# serves files; every path falls back to index.html, which shows the landing page.
 set -euo pipefail
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 API="${VITE_NAKAMA_API:-https://nakama.201-18-198-162.sslip.io/api}"
