@@ -106,6 +106,29 @@ Predict prices queued orders and settles each market on Pyth's signed BTC price 
 
 The server stores crew state in gitignored `data/crews.json`. It writes membership, settled calls, member results and a playbook after every five settled calls to Walrus Memory mainnet. Each write waits up to 300 s, because mainnet blobs took over 60 s to certify. Crew and member namespaces are `nakama-v1:crew:<crewId>` and `nakama-v1:member:<address>`. Writes run at most 30 per minute; the wrapper backs off on 429. Calls have a setup record, and the composer pre-fills from a recalled hot setup. The crew recap asks OpenRouter to summarize recalled memory only.
 
+## Mobile app (Expo)
+
+`packages/mobile` is a friendly crew wallet for iOS and Android: install it, it creates your own Sui wallet, asks you to fund it, you join crews by QR or invite link, and it pings you when your crew calls. It is an Expo SDK 58 app that runs in **Expo Go** (no native build) and talks to the same HTTP API as the web app.
+
+```sh
+cd packages/mobile
+npm install                      # installs on its own, outside the pnpm workspace
+npx expo start --ios             # or --android; opens in Expo Go
+# API base: hosted https://nakama.201-18-198-162.sslip.io/api by default.
+# Override with EXPO_PUBLIC_NAKAMA_API=..., or in the app under Wallet → Server.
+```
+
+| Piece | Status |
+|---|---|
+| Wallet: Ed25519 key created on the phone (`@mysten/sui`, `crypto.getRandomValues` from `expo-crypto`), kept in `expo-secure-store` | **Works** (iOS Simulator). Never logged; revealed only on the Backup screen after a warning |
+| Fund screen: address QR, SUI and USDC balances read from Sui mainnet GraphQL, Predict deposit dry-run via `POST /fund` | **Works**, real mainnet reads |
+| Rooms: public and joined crews, filters, Live pills; create public/private crew; join by invite link (paste `/?crew=<id>`; deep link `exp://<metro-host>/--/join/<id>` in Expo Go, `nakama://join/<id>` in a standalone build) | **Works** against the hosted server |
+| Join with QR (`expo-camera`) and Show crew QR | Built. QR display works; scanning needs a real camera (the iOS Simulator has none), so the demo joins by link |
+| Crew chat: joins, call cards, taps, results; post a call with the live 15–50% Predict entry band | **Works** |
+| Tap in · 2 USDC: server builds and dry-runs the Predict order; in live mode the phone signs the exact bytes locally and sends them to `/execute` | Dry-run path **works**. An unfunded wallet shows "Fund your wallet first" with Predict's own reason. Live signing is wired but **not exercised**: the hosted server is dry-run only and the wallet is unfunded |
+| Notifications: local notification for a crewmate's new call and for a settled call; crews polled every 15 s | New-call notification **works** in the foreground. Background polling relies on the OS keeping Expo Go alive; settled-call notifications need a market the keeper settles |
+| Scoreboard: crew results plus each member's on-chain Predict record (`/members/:address/history`) | **Works** (empty records for new wallets) |
+
 ## API
 
 - `POST /crews` `{name}`; `POST /crews/:id/join` `{address}`; `GET /crews/:id`.
