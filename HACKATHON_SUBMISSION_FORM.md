@@ -73,7 +73,7 @@ The server's chain client uses **Tatum's native Sui gRPC gateway** (`sui-mainnet
 
 ## Repository
 
-`https://github.com/nickthelegend/nakama`: **PENDING**. The repo has no remote yet, and the event requires it to be public. It goes public after a secret scan and Nick's yes.
+https://github.com/nickthelegend/nakama (secret scan passed Nov 10; Nick approved making it public, flipped to public before submitting).
 
 ## Demo video
 
@@ -95,7 +95,7 @@ Nivesh Gajengi (Nick), GitHub `nickthelegend`. Solo entry.
 
 ## Blog post
 
-[docs/BLOG.md](docs/BLOG.md). **PENDING:** publish it on a public URL and paste the link here.
+https://github.com/nickthelegend/nakama/blob/main/docs/BLOG.md
 
 ## Social post (bonus)
 
