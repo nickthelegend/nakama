@@ -85,6 +85,9 @@ importers:
       '@mysten/wallet-standard':
         specifier: ^0.21.38
         version: 0.21.38(@mysten/sui@2.39.1(typescript@5.9.3))
+      '@web3icons/core':
+        specifier: 4.0.58
+        version: 4.0.58
       react:
         specifier: ^19.2.0
         version: 19.3.1
@@ -688,6 +691,12 @@ packages:
   '@wallet-standard/wallet@1.1.1':
     resolution: {integrity: sha512-8WiRPaKk/wNNRZhB2eVhpR/JW7/aqTCMoZhgVUCujuzDmxxmGvsosMxdCG4NAdYkoyozAHCX8/xLtlWUn5mNdQ==}
     engines: {node: '>=22'}
+
+  '@web3icons/common@0.11.53':
+    resolution: {integrity: sha512-bNUB/Lfh9C+6T1juicWARU+oW27scRj7Xw/TkzCXlZBrJICEc/qTcIUStGpCjDq3jQuRfO6JHCbTIiiEPZAzBg==}
+
+  '@web3icons/core@4.0.58':
+    resolution: {integrity: sha512-22a+C1uHAhhEgSfumj0MisJhZty9ldJIemv1p0QeQaEfq8n/RrM3HptNf7MsAJbcq4jhqoDRGMRvYAgbUTytaA==}
 
   '@webcomponents/scoped-custom-element-registry@0.0.10':
     resolution: {integrity: sha512-wP4LF28aysE2Pq3NQRNQxko7Q0vOOwcoOSMg8FFI4S6z76UuXkYIc5ndC31dJMwso1/vSteL75LW2CEKedAJbA==}
@@ -1535,6 +1544,12 @@ snapshots:
   '@wallet-standard/wallet@1.1.1':
     dependencies:
       '@wallet-standard/base': 1.1.1
+
+  '@web3icons/common@0.11.53': {}
+
+  '@web3icons/core@4.0.58':
+    dependencies:
+      '@web3icons/common': 0.11.53
 
   '@webcomponents/scoped-custom-element-registry@0.0.10': {}
 
