@@ -57,7 +57,7 @@ export function Site() {
               </div>
             </div>
             <div className="hero-phones" aria-hidden>
-              <img className="hp hp-1" src="/shots/04-crew-chat.webp" alt="" />
+              <img className="hp hp-1" src="/shots/08-home-featured-live-call.webp" alt="" />
               <img className="hp hp-2" src="/shots/06-notification-live-call.webp" alt="" />
             </div>
           </div>
@@ -68,7 +68,7 @@ export function Site() {
           <div className="how">
             {WHAT.map(([tone, art, title, body]) => (
               <article key={title} className={`how-card tone-${tone}`}>
-                <div className="art"><img src={`/art/v2/${art}.webp`} alt="" loading="lazy" /></div>
+                <div className="art"><img src={`/art/v2/${art}.webp`} alt="" /></div>
                 <div className="in"><h3>{title}</h3><p>{body}</p></div>
               </article>
             ))}
@@ -78,7 +78,7 @@ export function Site() {
         <section className="l-sec">
           <div className="l-head"><div><span className="label">THE APP</span><h2>See it on a phone.</h2></div><p>Real screens from the app: the crew chat, a live call alert, joining by invite, your wallet and the scoreboard.</p></div>
           <div className="shots">
-            {SHOTS.map(([f, alt]) => <figure key={f} className="shot"><img src={`/shots/${f}.webp`} alt={alt} loading="lazy" /><figcaption>{alt}</figcaption></figure>)}
+            {SHOTS.map(([f, alt]) => <figure key={f} className="shot"><img src={`/shots/${f}.webp`} alt={alt} /><figcaption>{alt}</figcaption></figure>)}
           </div>
         </section>
 
