@@ -96,7 +96,7 @@ https://github.com/nickthelegend/nakama (secret scan passed Nov 10; Nick approve
 
 ## Tatum account ID
 
-`6af1b0a07614eea902da0ee6` (Nick's Tatum account, given Nov 10).
+`6af339b5059c9eaaf7a6e62c` (Nakama's own Tatum account; each entry has its own).
 
 ## MEMWAL_AGENT_ID
 
