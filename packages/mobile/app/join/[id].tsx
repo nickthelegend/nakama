@@ -39,7 +39,7 @@ export default function JoinCrew() {
                 <Chip text={`${crew.calls.length} calls`} tone="butter" />
                 <Chip text={crew.public ? 'public' : 'private'} tone="coral" />
               </View>
-              <Body style={{ textAlign: 'center' }}>Join with your in-app wallet {short(app.address ?? '')}. Joining is free; each call you tap into is 2 USDC from your own wallet.</Body>
+              <Body style={{ textAlign: 'center' }}>Joining is free. Taps are 2 USDC each.</Body>
               {error ? <ErrorNote text={error} /> : null}
               <Pill title={already ? 'Open crew room' : 'Join the crew'} size="xl" busy={busy} style={{ alignSelf: 'stretch' }} onPress={() => run(async () => {
                 const c = already ? crew : await api<Crew>(`/crews/${crew.id}/join`, { address: app.address });

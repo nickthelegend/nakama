@@ -36,7 +36,13 @@
           "color": "#FF6F59"
         }
       ],
-      "expo-background-task"
+      "expo-background-task",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Nakama reads a crew QR from a photo you pick."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": false
