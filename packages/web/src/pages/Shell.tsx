@@ -3,7 +3,7 @@ import type { N } from '../state';
 import { pct } from '../state';
 import { CallBuilder, CrewCard, CrewState, EventRow, FundCard, LiveCall, MemoryPanel, PlayerCard, Playbook, ResultCard, Scoreboard, SetupNotice, TapButton, Toast, callTitle, crewEvents } from '../parts';
 import { ModeBadge } from '../hud';
-import { InviteCard, Rooms, StartCrew } from '../crew-first';
+import { GetApp, InviteCard, Rooms, StartCrew } from '../crew-first';
 import { Avatar, CrewAvatar, Ic, OddsBar, TokenLogo, short, usd } from '../ui';
 
 type Tab = 'rooms' | 'chat' | 'call' | 'crew' | 'board';
@@ -82,6 +82,9 @@ export function Shell({ n, initialTab }: { n: N; initialTab?: Tab }) {
             <Playbook n={n} />
           </div>
         )}
+        <div className="side-sec" data-group="crew">
+          <GetApp compact />
+        </div>
         <p className="side-foot">Members sign their own orders · <ModeBadge n={n} /></p>
       </aside>
       <nav className="tabs tabs-shell" aria-label="Sections">

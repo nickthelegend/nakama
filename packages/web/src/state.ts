@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useCurrentAccount, useCurrentWallet, useDAppKit } from '@mysten/dapp-kit-react';
 import { DEMO_WALLET_NAME } from './demo-wallet';
+import { API_BASE } from './api-base';
 import { net } from './ui';
 
 export type Direction = 'up' | 'down' | 'range';
@@ -73,7 +74,7 @@ export type BoardRow = { address: string; calls: number; wins: number; pnl: numb
 
 export async function api<T>(path: string, body?: unknown): Promise<T> {
   const r = await fetch(
-    `/api${path}`,
+    `${API_BASE}${path}`,
     body === undefined ? undefined : { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) },
   );
   const j = await r.json().catch(() => ({ error: `HTTP ${r.status}` }));
@@ -192,7 +193,7 @@ export function useNakama() {
     void refresh().catch((e) => setMessage(String(e.message ?? e)));
     const tick = setInterval(() => setNow(Date.now()), 1000);
     const reload = setInterval(() => void refresh().catch(() => {}), 15_000);
-    const es = new EventSource('/api/events');
+    const es = new EventSource(`${API_BASE}/events`);
     es.onmessage = () => void refresh().catch(() => {});
     return () => {
       clearInterval(tick);

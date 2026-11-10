@@ -1,6 +1,7 @@
 import type { N } from '../state';
 import { MarketsTable } from '../parts';
 import { Ic, Link, MemoryGlyph, SuiMark, TokenLogo, usd } from '../ui';
+import { GetApp } from '../crew-first';
 
 const MOVES = [
   ['coral', 'nakama-card-host', 'Call it', 'A friend posts “BTC above $X in 5 min” and says why. Live Predict odds show before it goes out.'],
@@ -79,6 +80,14 @@ export function Landing({ n }: { n: N }) {
             <div key={title} className={`tech-item tone-${tone}`}><h4>{title}</h4><p>{body}</p></div>
           ))}
         </div>
+      </section>
+
+      <section className="l-sec" id="app">
+        <div className="l-head">
+          <div><span className="label">ON YOUR PHONE</span><h2>Take the crew with you.</h2></div>
+          <p>The Android app is the same crew wallet: rooms, chat, calls and the scoreboard, against the same hosted server.</p>
+        </div>
+        <GetApp />
       </section>
 
       <section className="cta-band">

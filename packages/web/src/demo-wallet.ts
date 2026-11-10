@@ -1,6 +1,7 @@
 import { registerWallet, type Wallet, type SuiSignTransactionInput } from '@mysten/wallet-standard';
 import { Transaction } from '@mysten/sui/transactions';
 import { toBase64 } from '@mysten/sui/utils';
+import { API_BASE } from './api-base';
 
 type DemoAccount = { label: string; address: string };
 export const DEMO_WALLET_NAME = 'Demo signer (server-held key)';
@@ -10,7 +11,7 @@ const icon = `data:image/svg+xml;base64,${btoa('<svg xmlns="http://www.w3.org/20
 export async function registerDemoWallet() {
   let result: { enabled: boolean; accounts: DemoAccount[] };
   try {
-    const response = await fetch('/api/demo-signer');
+    const response = await fetch(`${API_BASE}/demo-signer`);
     if (!response.ok) return;
     result = await response.json();
   } catch { return; }
@@ -33,7 +34,7 @@ export async function registerDemoWallet() {
           const tx = Transaction.from(await transaction.toJSON());
           const built = await tx.build();
           const bytes = toBase64(built);
-          const response = await fetch('/api/demo-signer/sign', {
+          const response = await fetch(`${API_BASE}/demo-signer/sign`, {
             method: 'POST', headers: { 'content-type': 'application/json' },
             body: JSON.stringify({ address: account.address, bytes }), signal,
           });

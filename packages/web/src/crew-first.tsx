@@ -3,6 +3,7 @@ import qrcode from 'qrcode-generator';
 import type { N, Room } from './state';
 import { callTitle, TapButton } from './parts';
 import { Ic, TokenLogo } from './ui';
+import { APK_URL } from './api-base';
 
 export const inviteUrl = (id: string) => `${location.origin}/app?crew=${id}`;
 
@@ -92,3 +93,26 @@ function RoomRow({ n, r }: { n: N; r: Room }) {
 }
 
 export { TapButton };
+
+/** Get the Nakama app: the Android APK (download button + a QR code of its URL to scan from a phone) and the iOS status. */
+export function GetApp({ compact }: { compact?: boolean }) {
+  const svg = useMemo(() => {
+    const q = qrcode(0, 'M');
+    q.addData(APK_URL);
+    q.make();
+    return q.createSvgTag({ cellSize: 5, margin: 2, scalable: true });
+  }, []);
+  return (
+    <section className={`c3 invite3 getapp3 ${compact ? 'compact' : ''}`} aria-label="Get the Nakama app" id="get-app" data-film="get-app">
+      <div className="inv-qr" dangerouslySetInnerHTML={{ __html: svg }} aria-label={`QR code for ${APK_URL}`} role="img" />
+      <div className="inv-main">
+        <span className="k">ANDROID APK · SIDELOAD</span>
+        <h3>Get the Nakama app</h3>
+        <p className="mini">Scan with your Android phone or tap download, then allow installs from your browser. It talks to the same hosted crews as this site.</p>
+        <span className="inv-url mono">{APK_URL}</span>
+        <a className="b3 b3-sm" href={APK_URL} download="nakama.apk" type="application/vnd.android.package-archive"><Ic name="down" size={16} />DOWNLOAD ANDROID APK</a>
+        <p className="mini">iOS: open in Expo Go — build coming.</p>
+      </div>
+    </section>
+  );
+}
