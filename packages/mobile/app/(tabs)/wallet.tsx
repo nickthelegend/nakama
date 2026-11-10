@@ -120,7 +120,7 @@ export default function Wallet() {
           <Mono>{app.base}</Mono>
           <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
             <Pill title="Hosted" size="sm" tone={app.base === DEFAULT_API ? 'coral' : 'ghost'} onPress={() => app.changeBase(DEFAULT_API)} />
-            <Pill title="Emulator localhost" size="sm" tone={app.base === LOCAL_API ? 'coral' : 'ghost'} onPress={() => app.changeBase(LOCAL_API)} />
+            <Pill title="Mac localhost:8817" size="sm" tone={app.base === LOCAL_API ? 'coral' : 'ghost'} onPress={() => app.changeBase(LOCAL_API)} />
           </View>
           <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
             <TextInput value={custom} onChangeText={setCustom} placeholder="https://your-server/api" placeholderTextColor={C.ink3} autoCapitalize="none" autoCorrect={false}

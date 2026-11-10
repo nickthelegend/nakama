@@ -1,9 +1,10 @@
+import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
 /** Hosted Nakama server (dry-run: it builds and simulates, it never signs). Override in Wallet → Server, or with EXPO_PUBLIC_NAKAMA_API. */
 export const DEFAULT_API = process.env.EXPO_PUBLIC_NAKAMA_API ?? 'https://nakama.201-18-198-162.sslip.io/api';
-/** The Android emulator reaches a server on the Mac's localhost through 10.0.2.2. */
-export const LOCAL_API = 'http://10.0.2.2:8817';
+/** A server on the Mac: the Android emulator reaches it through 10.0.2.2, the iOS Simulator through localhost. */
+export const LOCAL_API = Platform.OS === 'android' ? 'http://10.0.2.2:8817' : 'http://localhost:8817';
 const KEY = 'nakama.apiBase';
 
 let base = DEFAULT_API;

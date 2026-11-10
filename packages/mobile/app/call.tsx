@@ -23,6 +23,11 @@ export default function PostCall() {
   const [oddsErr, setOddsErr] = useState<string | null>(null);
   const [loadErr, setLoadErr] = useState<string | null>(null);
   const post = useBusy();
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => tick((n) => n + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
 
   useEffect(() => {
     api<{ markets: Market[] }>('/markets')
@@ -73,7 +78,7 @@ export default function PostCall() {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
               {markets.slice(0, 6).map((m) => {
                 const on = m.id === marketId;
-                const secs = Math.round((m.expiryMs - Date.now()) / 1000);
+                const secs = Math.max(0, Math.round((m.expiryMs - Date.now()) / 1000));
                 return (
                   <Pressable key={m.id} onPress={() => setMarketId(m.id)} style={{ paddingVertical: 10, paddingHorizontal: 14, borderRadius: 18, backgroundColor: on ? C.plum : '#fff', borderWidth: 2, borderColor: on ? C.plum : C.edge }}>
                     <Text style={{ fontFamily: F.display, fontSize: 15, color: on ? '#fff' : C.plum }}>BTC {m.cadence}m</Text>

@@ -41,10 +41,13 @@ export function CallCard({ call, me, member, onChanged }: { call: Call; me: stri
     run(async () => {
       setTap(null);
       const p = await api<PlanResult>(`/calls/${call.id}/plan`, { address: me, size: TAP }, 60000);
-      if (!p.quote.accepting) return setTap({ kind: 'refused', reason: p.quote.refusal ?? 'Predict refused this tap' });
-      if (p.dryRun?.status !== 'success') {
+      if (!p.quote.accepting || p.dryRun?.status !== 'success') {
         const wallet = await balances(me).catch(() => null);
-        return setTap({ kind: 'fund', dry: p.dryRun?.error || `Dry-run ${p.dryRun?.status ?? 'unavailable'}`, wallet, debit: p.quote.totalDebit });
+        const why = !p.quote.accepting
+          ? `quote refused (${p.quote.refusal ?? 'no reason given'}), so there was nothing to simulate`
+          : `${p.dryRun?.status ?? 'unavailable'}: ${p.dryRun?.error || 'the chain returned no reason'}`;
+        const unfunded = !wallet || wallet.usdc < TAP + 0.02 || wallet.sui < 0.05;
+        return setTap(unfunded ? { kind: 'fund', dry: why, wallet, debit: p.quote.totalDebit || null } : { kind: 'refused', reason: why });
       }
       if (!p.transaction)
         return setTap({ kind: 'dry', debit: p.quote.totalDebit, fee: p.quote.orderFee, payout: p.quote.potentialPayout, mode: p.mode, rpc: p.dryRun.rpc });
@@ -125,7 +128,7 @@ export function CallCard({ call, me, member, onChanged }: { call: Call; me: stri
           {tap.rpc ? <Mono>via {tap.rpc}</Mono> : null}
         </Card>
       ) : null}
-      {tap?.kind === 'refused' ? <ErrorNote text={`Predict refused: ${tap.reason}`} /> : null}
+      {tap?.kind === 'refused' ? <ErrorNote text={`Predict: ${tap.reason}`} /> : null}
       {tap?.kind === 'sent' ? (
         <Card face={C.mintSoft} edge="#b6ebd2" style={{ gap: 4 }}>
           <Kicker>Order queued · signed on this phone</Kicker>

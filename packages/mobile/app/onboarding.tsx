@@ -44,7 +44,7 @@ export default function Onboarding() {
             <Kicker>Step 1 · Your wallet</Kicker>
             <H1>Your own Sui wallet, made on this phone</H1>
             <Body>
-              Nakama creates an Ed25519 key here and keeps it in Android's secure keystore. It never goes to our server: when you tap in, this phone signs your own transaction.
+              Nakama creates an Ed25519 key here and keeps it in the phone's secure storage (iOS Keychain, Android Keystore). It never goes to our server: when you tap in, this phone signs your own transaction.
             </Body>
             {app.address ? (
               <Card face={C.mintSoft} edge="#b6ebd2" style={{ gap: 4 }}>
@@ -67,7 +67,7 @@ export default function Onboarding() {
             <H1>Know when your crew calls</H1>
             <Image source={art.megaphone} style={{ width: 96, height: 96, alignSelf: 'center' }} />
             <Body>Calls last 1 or 5 minutes, so Nakama pings you the moment a crewmate posts one, and again when Pyth settles it.</Body>
-            {notif === false ? <ErrorNote text="Notifications are off. You can still open crews yourself; turn them on in Android settings any time." /> : null}
+            {notif === false ? <ErrorNote text="Notifications are off. You can still open crews yourself; turn them on in Settings any time." /> : null}
             {notif === true ? <Body style={{ color: C.mintInk }}>Notifications on.</Body> : null}
             {notif === null ? (
               <Pill title="Allow notifications" size="xl" busy={busy} onPress={() => run(async () => setNotif(await askNotificationPermission()))} />
