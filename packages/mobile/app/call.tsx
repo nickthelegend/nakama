@@ -3,7 +3,7 @@ import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Body, Card, ErrorNote, H1, Kicker, Pill, useBusy } from '../components/ui';
+import { Empty, Body, Card, ErrorNote, H1, Kicker, Pill, useBusy } from '../components/ui';
 import { api, pct, usd } from '../lib/api';
 import { useApp } from '../lib/store';
 import { C, F, art } from '../lib/theme';
@@ -29,15 +29,22 @@ export default function PostCall() {
     return () => clearInterval(t);
   }, []);
 
+  // Predict opens BTC markets in 1m and 5m windows; between windows there can be none, so re-check every 15 s.
   useEffect(() => {
-    api<{ markets: Market[] }>('/markets')
-      .then((r) => {
-        const open = r.markets.filter((m) => m.expiryMs > Date.now() + 25000 && !m.mintPaused).sort((a, b) => a.expiryMs - b.expiryMs);
-        setMarkets(open);
-        const first = open.find((m) => m.referencePrice || m.suggestedStrike) ?? open[0];
-        if (first) setMarketId(first.id);
-      })
-      .catch((e) => setLoadErr(e.message));
+    let alive = true;
+    const pull = () =>
+      api<{ markets: Market[] }>('/markets')
+        .then((r) => {
+          if (!alive) return;
+          const open = r.markets.filter((m) => m.expiryMs > Date.now() + 25000 && !m.mintPaused).sort((a, b) => a.expiryMs - b.expiryMs);
+          setMarkets(open);
+          setLoadErr(null);
+          setMarketId((cur) => (cur && open.some((m) => m.id === cur) ? cur : (open.find((m) => m.referencePrice || m.suggestedStrike) ?? open[0])?.id ?? null));
+        })
+        .catch((e) => alive && setLoadErr(e.message));
+    pull();
+    const t = setInterval(pull, 15000);
+    return () => { alive = false; clearInterval(t); };
   }, []);
   const market = useMemo(() => markets?.find((m) => m.id === marketId) ?? null, [markets, marketId]);
   useEffect(() => {
@@ -70,7 +77,7 @@ export default function PostCall() {
         </View>
         {loadErr ? <ErrorNote text={loadErr} /> : null}
         {!markets && !loadErr ? <Body faint>Reading live BTC markets from DeepBook Predict…</Body> : null}
-        {markets && markets.length === 0 ? <ErrorNote text="No BTC market is open right now. New 1m and 5m markets open every minute; try again shortly." /> : null}
+        {markets && markets.length === 0 ? <Card style={{ padding: 4 }}><Empty title="No open BTC markets" body="No open BTC markets on DeepBook Predict right now — next check in 15 s." mood="sleep" /></Card> : null}
 
         {markets && markets.length > 0 ? (
           <>
