@@ -6,6 +6,7 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Body, Chip, Empty, ErrorNote, Pill, useBusy } from '../../components/ui';
 import { CallCard, Tri } from '../../components/CallCard';
+import { ForkBanner } from '../../components/ForkBanner';
 import { api, dirWord, usd } from '../../lib/api';
 import { useApp } from '../../lib/store';
 import { C, art, pick, short } from '../../lib/theme';
@@ -103,6 +104,7 @@ export default function Room() {
         </Pressable>
       </View>
 
+      <ForkBanner />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         {/* pinned live call */}
         {live && crew ? (

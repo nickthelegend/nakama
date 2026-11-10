@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import * as Notifications from 'expo-notifications';
-import { apiBase, loadApiBase, setApiBase } from './api';
+import { api, apiBase, loadApiBase, setApiBase } from './api';
 import { checkCrews, registerBackgroundCheck, rememberAddress, resetSeen } from './watch';
 import { createWallet, loadWallet } from './wallet';
 
@@ -16,6 +16,7 @@ type Ctx = {
   activeCrew: string | null;
   lastPoll: { at: number; error: string | null } | null;
   bgStatus: string | null;
+  rpc: string | null;
   createWallet: () => Promise<string>;
   finishOnboarding: () => Promise<void>;
   rememberCrew: (c: { id: string; name: string }) => Promise<void>;
@@ -55,6 +56,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [activeCrew, setActive] = useState<string | null>(null);
   const [lastPoll, setLastPoll] = useState<Ctx['lastPoll']>(null);
   const [bgStatus, setBgStatus] = useState<string | null>(null);
+  const [rpc, setRpc] = useState<string | null>(null);
+  useEffect(() => {
+    setRpc(null);
+    api<{ rpc: string }>('/status').then((s) => setRpc(s.rpc)).catch(() => setRpc(null));
+  }, [base]);
 
   useEffect(() => {
     (async () => {
@@ -102,7 +108,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [ready, address, crews, base]);
 
   const value: Ctx = {
-    ready, address, onboarded, base, crews, activeCrew, lastPoll, bgStatus,
+    ready, address, onboarded, base, crews, activeCrew, lastPoll, bgStatus, rpc,
     createWallet: async () => {
       const a = await createWallet();
       setAddress(a);

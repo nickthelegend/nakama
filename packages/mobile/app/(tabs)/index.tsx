@@ -6,6 +6,7 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Body, Empty, ErrorNote, Pill, Skeleton, Wordmark } from '../../components/ui';
 import { CallCard } from '../../components/CallCard';
+import { ForkBanner } from '../../components/ForkBanner';
 import { TAB_SPACE } from '../../components/TabBar';
 import { api, dirWord, usd } from '../../lib/api';
 import { balances } from '../../lib/sui';
@@ -93,6 +94,7 @@ export default function Home() {
           </Pressable>
         </View>
 
+        <ForkBanner />
         {/* balance */}
         <View style={{ paddingHorizontal: 20, marginTop: 18, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
           <View>

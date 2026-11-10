@@ -7,6 +7,7 @@ import QRCode from 'react-native-qrcode-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Body, ErrorNote, Mono, Pill, useBusy } from '../../components/ui';
 import { TAB_SPACE, TokenLogo } from '../../components/TabBar';
+import { ForkBanner } from '../../components/ForkBanner';
 import { api, DEFAULT_API, LOCAL_API } from '../../lib/api';
 import { balances, type Balances } from '../../lib/sui';
 import { signTransactionBytes } from '../../lib/wallet';
@@ -58,6 +59,7 @@ export default function Wallet() {
           </View>
         </View>
 
+        <ForkBanner />
         <View>
           <Text style={{ color: C.ink2, fontSize: 17, fontWeight: '500' }}>Ready for taps</Text>
           <Text style={{ color: '#fff', fontSize: 40, fontWeight: '700', letterSpacing: -1.2 }}>{bal ? `$${bal.usdc.toFixed(2)}` : '$–'}</Text>
@@ -93,8 +95,8 @@ export default function Wallet() {
               <Mono>via {fund.dryRun.rpc}</Mono>
             </View>
           ) : null}
-          {sent ? <Mono style={{ color: C.mintInk }}>Deposited: {sent}</Mono> : null}
-          <Pill title="Check deposit (dry-run)" tone="ghost" busy={dep.busy} onPress={() => dep.run(async () => {
+          {sent ? <Mono style={{ color: C.mintInk }}>Signed on this phone · deposited: {sent}</Mono> : null}
+          <Pill title={app.rpc && /fork/i.test(app.rpc) ? "Deposit 3 USDC to Predict" : "Check deposit (dry-run)"} tone="ghost" busy={dep.busy} onPress={() => dep.run(async () => {
             setSent(null);
             const f = await api<Fund>('/fund', { address: addr, amount: 3, create: true }, 60000);
             setFund(f);

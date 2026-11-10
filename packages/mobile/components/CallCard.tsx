@@ -14,7 +14,7 @@ import type { Call, Odds, PlanResult } from '../lib/types';
 type Tap =
   | { kind: 'fund'; dry: string; wallet: Balances | null; debit: number | null }
   | { kind: 'dry'; debit: number; fee: number; payout?: number; mode: string; rpc?: string }
-  | { kind: 'sent'; digest: string }
+  | { kind: 'sent'; digest: string; mode?: string }
   | { kind: 'refused'; reason: string };
 
 const TAP = 2;
@@ -58,7 +58,7 @@ function useTapIn(call: Call, me: string, onChanged: () => void) {
       const signed = await signTransactionBytes(p.transaction);
       const sent = await api<{ digest: string }>('/execute', { bytes: signed.bytes, signature: signed.signature }, 60000);
       await api(`/calls/${call.id}/orders`, { address: me, digest: sent.digest }, 60000);
-      setTap({ kind: 'sent', digest: sent.digest });
+      setTap({ kind: 'sent', digest: sent.digest, mode: p.mode });
       onChanged();
     });
   return { tap, tapIn, busy: b.busy, error: b.error };
@@ -200,8 +200,8 @@ export function CallCard({ call, me, member, onChanged, crewName, members, past 
         ) : null}
         {tap?.kind === 'refused' ? <ErrorNote text={`Predict: ${tap.reason}`} /> : null}
         {tap?.kind === 'sent' ? (
-          <Pressable onPress={() => Linking.openURL(`https://suiscan.xyz/mainnet/tx/${tap.digest}`)} style={{ backgroundColor: '#141414', borderRadius: 20, padding: 14 }}>
-            <Text style={{ fontWeight: '700', color: C.mintInk }}>Order queued · signed on this phone</Text>
+          <Pressable onPress={() => (/fork/i.test(tap.mode ?? '') ? undefined : Linking.openURL(`https://suiscan.xyz/mainnet/tx/${tap.digest}`))} style={{ backgroundColor: '#141414', borderRadius: 20, padding: 14 }}>
+            <Text style={{ fontWeight: '700', color: C.mintInk }}>Order queued · signed on this phone{tap.mode ? ` · ${tap.mode}` : ''}</Text>
             <Text style={{ fontFamily: F.mono, fontSize: 12, color: C.ink2 }}>{tap.digest}</Text>
           </Pressable>
         ) : null}
