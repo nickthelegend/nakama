@@ -1,2 +1,4 @@
 packages:
   - packages/*
+  # The Expo app installs with npm on its own (Metro and Expo Go want a flat node_modules).
+  - '!packages/mobile'
