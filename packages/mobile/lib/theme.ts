@@ -1,6 +1,6 @@
 /**
  * Nakama mobile: one coherent dark app. Charcoal surfaces, big confident system type,
- * Nakama coral as the only accent, green/red only for up/down, Baloo 2 only in the wordmark.
+ * Nakama coral as the only accent, green/red only for up/down; type follows the web (Baloo 2 display, Urbanist body, Space Mono numbers).
  */
 export const C = {
   bg: '#141414', surface: '#1c1c1c', surface2: '#242424', surface3: '#2c2c2c',
