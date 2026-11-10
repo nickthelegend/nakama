@@ -21,6 +21,18 @@ export async function setApiBase(next: string) {
 
 /** GET when body is undefined, POST JSON otherwise. Server errors come back as readable messages, never as success. */
 export async function api<T>(path: string, body?: unknown, timeoutMs = 45000): Promise<T> {
+  // A busy proxy answers 429/502/503 for a moment; reads retry twice with a short backoff before failing loudly.
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await apiOnce<T>(path, body, timeoutMs);
+    } catch (e: any) {
+      if (body !== undefined || attempt >= 2 || !/HTTP (429|502|503)/.test(String(e?.message))) throw e;
+      await new Promise((r) => setTimeout(r, 700 * (attempt + 1)));
+    }
+  }
+}
+
+async function apiOnce<T>(path: string, body: unknown, timeoutMs: number): Promise<T> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), timeoutMs);
   let r: Response;

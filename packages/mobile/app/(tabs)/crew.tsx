@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { Alert, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { Text } from '../../components/T';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
@@ -64,6 +64,7 @@ export default function Crews() {
           const left = live ? Math.max(0, Math.round((live.expiryMs - now) / 1000)) : 0;
           return (
             <Pressable key={c.id} onPress={() => router.push({ pathname: '/room/[id]', params: { id: c.id } })}
+              onLongPress={() => Alert.alert(`Hide ${c.name}?`, 'It leaves your list on this phone. You stay a member and can rejoin from its invite.', [{ text: 'Cancel', style: 'cancel' }, { text: 'Hide', style: 'destructive', onPress: () => app.forgetCrew(c.id) }])}
               style={({ pressed }) => ({ backgroundColor: pressed ? C.surface2 : C.surface, borderRadius: 26, padding: 16, gap: 12, transform: [{ scale: pressed ? 0.985 : 1 }] })}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
                 <Image source={pick(art.crews, c.id)} style={{ width: 56, height: 56, borderRadius: 18, backgroundColor: C.surface3 }} />

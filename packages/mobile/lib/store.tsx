@@ -20,6 +20,7 @@ type Ctx = {
   createWallet: () => Promise<string>;
   finishOnboarding: () => Promise<void>;
   rememberCrew: (c: { id: string; name: string }) => Promise<void>;
+  forgetCrew: (id: string) => Promise<void>;
   setActiveCrew: (id: string) => Promise<void>;
   changeBase: (b: string) => Promise<void>;
 };
@@ -80,6 +81,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return next;
     });
   }, []);
+  const forgetCrew = useCallback(async (id: string) => {
+    setCrews((list) => {
+      const next = list.filter((k) => k.id !== id);
+      SecureStore.setItemAsync(K.crews, JSON.stringify(next));
+      return next;
+    });
+  }, []);
   const setActiveCrew = useCallback(async (id: string) => {
     setActive(id);
     await SecureStore.setItemAsync(K.active, id);
@@ -119,6 +127,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setOnboarded(true);
     },
     rememberCrew,
+    forgetCrew,
     setActiveCrew,
     changeBase: async (b) => {
       await resetSeen();
