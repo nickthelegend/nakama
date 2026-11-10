@@ -29,6 +29,8 @@ function notify(title: string, body: string, crewId: string) {
 
 export async function rememberAddress(address: string) {
   await SecureStore.setItemAsync(ADDRESS, address);
+  // Start watching from now: from here on, a crewmate's live call counts as new even in a crew joined later.
+  if ((await SecureStore.getItemAsync(SEEN)) === null) await SecureStore.setItemAsync(SEEN, '{}');
 }
 
 export async function checkCrews(address: string, crewIds: { id: string }[]): Promise<{ notified: number; error: string | null }> {

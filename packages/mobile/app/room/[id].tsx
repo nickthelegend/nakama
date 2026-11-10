@@ -63,7 +63,7 @@ export default function Room() {
           <Text style={{ fontWeight: '600', fontSize: 12, color: C.ink3, marginHorizontal: 10 }}>
             {mine ? 'You' : short(x.caller)}{x.createdAt ? ` · ${new Date(x.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
           </Text>
-          <View style={{ maxWidth: '82%' }}><Bubble x={x} mine={mine} live={isLive(x, now)} /></View>
+          <View style={{ maxWidth: '82%' }}><Bubble x={x} mine={mine} live={isLive(x, now)} pinned={x.id === live?.id} /></View>
         </View>
       ),
     });
@@ -166,7 +166,7 @@ export default function Room() {
   );
 }
 
-function Bubble({ x, mine, live }: { x: Call; mine: boolean; live: boolean }) {
+function Bubble({ x, mine, live, pinned }: { x: Call; mine: boolean; live: boolean; pinned: boolean }) {
   const hits = x.orders.filter((o) => o.hit).length;
   return (
     <View style={{ backgroundColor: mine ? C.coral : C.surface2, borderRadius: 20, borderTopRightRadius: mine ? 6 : 20, borderTopLeftRadius: mine ? 20 : 6, paddingVertical: 10, paddingHorizontal: 14, gap: 3 }}>
@@ -176,7 +176,7 @@ function Bubble({ x, mine, live }: { x: Call; mine: boolean; live: boolean }) {
       </View>
       <Text style={{ color: mine ? '#fff' : C.ink, fontSize: 15, lineHeight: 20 }}>{x.why}</Text>
       <Text style={{ color: mine ? 'rgba(255,255,255,0.8)' : C.ink3, fontSize: 12.5, fontWeight: '600' }}>
-        {live ? `Live · ${x.orders.length} tapped in · pinned above` : x.status === 'settled' ? `Settled by Pyth · ${hits}/${x.orders.length} won` : `Closed · ${x.orders.length} tapped in`}
+        {live ? `Live · ${x.orders.length} tapped in${pinned ? ' · pinned above' : ''}` : x.status === 'settled' ? `Settled by Pyth · ${hits}/${x.orders.length} won` : `Closed · ${x.orders.length} tapped in`}
       </Text>
     </View>
   );
