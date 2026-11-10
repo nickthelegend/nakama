@@ -34,7 +34,7 @@ When a call goes up, Nakama recalls up to 40 memories matching its setup and sho
 
 ## How it learns over time
 
-This is the part that is **not live yet**. The loop has four steps:
+The loop is built and unit-tested. It learns from settled calls, so it starts producing advice after the first funded mainnet rounds (see What's next). It has four steps:
 
 1. **Remember outcomes, not opinions.** Nakama only writes a call to memory after the market settles, with the real result and each member's fill digest.
 2. **Size from your own record.** A member's suggested stake starts from their average size and is scaled by their hit rate, clamped between 0.5× and 1.25×. A crew on a win streak of 3 or more gets a 1.5× multiplier. The result always stays between 2 and 10 USDC.
@@ -42,8 +42,6 @@ This is the part that is **not live yet**. The loop has four steps:
 4. **Reuse what works.** The composer pre-fills from the crew's best setup that has at least two calls behind it. An optional LLM recap summarizes the crew's recent run, using only the recalled Walrus facts.
 
 The status on Nov 9: **15 Nakama memories are on Walrus mainnet.** A crew can bring its history. Each member's settled Predict trades, read from Sui mainnet, become their result memories, and each join is a membership memory. Our first crew is three public Predict traders: 3 joins and 12 settled trades. Mainnet blobs take a minute or two to certify, so writes go through a queue that waits up to five minutes each. The write path for a live round (fund a Predict account, join with a real queued order, verify the receipt) was rehearsed on a local fork of Sui mainnet, at the same small amounts we then used on mainnet. A fork has no Predict keeper, so fills, settlement and payouts only happen on mainnet.
-
-The plan to meet the event's minimum of 10 memories is small and concrete: one crew, two members (2 membership records), three settled calls (3 call records and 6 member results). That makes 11 or more memories, and the first five settled calls produce the first playbook.
 
 ## What changed on Nov 10
 
@@ -53,6 +51,6 @@ Nakama is now a friendly crew wallet, and the crew comes first: you create a pub
 
 Fund the hub, which funds the two demo members (they exist and are unfunded today), run one real two-member round on mainnet through Tatum, let it settle, and write the first memories. We'll update this post with the digests and blob IDs when that happens.
 
-Code: `<repo link, PENDING public>`. Film: `<film link, PENDING upload>`.
+Code: https://github.com/nickthelegend/nakama. Film: linked in the submission form.
 
 *Built with Claude and Codex for code and docs, ChatGPT image generation for the art, and Chatterbox for the film's voice.*
