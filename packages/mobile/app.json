@@ -6,8 +6,8 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "nakama",
-    "userInterfaceStyle": "light",
-    "backgroundColor": "#FFF4E6",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#141414",
     "android": {
       "package": "xyz.nakama.crew",
       "adaptiveIcon": { "foregroundImage": "./assets/icon.png", "backgroundColor": "#FFE3A3" },

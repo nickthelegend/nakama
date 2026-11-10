@@ -31,7 +31,7 @@ export default function Backup() {
             'It imports into any Sui wallet (Slush, Suiet) as a suiprivkey string.',
           ].map((t) => (
             <View key={t} style={{ flexDirection: 'row', gap: 8 }}>
-              <Text style={{ fontFamily: F.display, color: C.pinkInk }}>•</Text>
+              <Text style={{ fontWeight: '800', color: C.pinkInk }}>•</Text>
               <Body style={{ flex: 1, color: C.ink }}>{t}</Body>
             </View>
           ))}

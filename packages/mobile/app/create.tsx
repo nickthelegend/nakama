@@ -26,14 +26,14 @@ export default function CreateCrew() {
         <Image source={art.host} style={{ width: 150, height: 150, alignSelf: 'center' }} />
         <Kicker>Crew name</Kicker>
         <TextInput value={name} onChangeText={setName} placeholder="e.g. Friday night desk" placeholderTextColor={C.ink3} maxLength={60}
-          style={{ height: 54, borderRadius: 18, backgroundColor: '#fff', borderWidth: 2, borderColor: C.edge, paddingHorizontal: 16, fontFamily: F.display, fontSize: 18, color: C.plum }} />
+          style={{ height: 54, borderRadius: 18, backgroundColor: '#fff', borderWidth: 2, borderColor: C.edge, paddingHorizontal: 16, fontWeight: '800', fontSize: 18, color: C.plum }} />
         <Kicker>Who can find it</Kicker>
         {([[true, 'Public', 'Listed in Rooms for everyone'], [false, 'Private', 'Only people with your invite QR']] as const).map(([v, t, d]) => (
           <Pressable key={t} onPress={() => setPublic(v)}>
             <Card face={isPublic === v ? C.coralSoft : '#fff'} edge={isPublic === v ? C.coralEdge : C.edge} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 }}>
               <View style={{ width: 22, height: 22, borderRadius: 11, borderWidth: 3, borderColor: C.coral, backgroundColor: isPublic === v ? C.coral : '#fff' }} />
               <View style={{ flex: 1 }}>
-                <Text style={{ fontFamily: F.display, fontSize: 17, color: C.plum }}>{t}</Text>
+                <Text style={{ fontWeight: '800', fontSize: 17, color: C.plum }}>{t}</Text>
                 <Body style={{ fontSize: 13 }}>{d}</Body>
               </View>
             </Card>

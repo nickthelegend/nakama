@@ -45,7 +45,7 @@ export default function Scan() {
         </Card>
         <Kicker>Or paste an invite link</Kicker>
         <TextInput value={link} onChangeText={setLink} placeholder="https://…/?crew=ab12cd34" placeholderTextColor={C.ink3} autoCapitalize="none" autoCorrect={false}
-          style={{ height: 52, borderRadius: 18, backgroundColor: '#fff', borderWidth: 2, borderColor: C.edge, paddingHorizontal: 14, fontFamily: F.bodySemi, fontSize: 15, color: C.ink }} />
+          style={{ height: 52, borderRadius: 18, backgroundColor: '#fff', borderWidth: 2, borderColor: C.edge, paddingHorizontal: 14, fontWeight: '600', fontSize: 15, color: C.ink }} />
         {error ? <ErrorNote text={error} /> : null}
         <Pill title="Open invite" disabled={!link.trim()} onPress={() => go(link)} />
       </ScrollView>

@@ -81,8 +81,8 @@ export default function PostCall() {
                 const secs = Math.max(0, Math.round((m.expiryMs - Date.now()) / 1000));
                 return (
                   <Pressable key={m.id} onPress={() => setMarketId(m.id)} style={{ paddingVertical: 10, paddingHorizontal: 14, borderRadius: 18, backgroundColor: on ? C.plum : '#fff', borderWidth: 2, borderColor: on ? C.plum : C.edge }}>
-                    <Text style={{ fontFamily: F.display, fontSize: 15, color: on ? '#fff' : C.plum }}>BTC {m.cadence}m</Text>
-                    <Text style={{ fontFamily: F.bodySemi, fontSize: 12, color: on ? '#e7d8ef' : C.ink3 }}>ends in {Math.floor(secs / 60)}:{String(secs % 60).padStart(2, '0')}</Text>
+                    <Text style={{ fontWeight: '800', fontSize: 15, color: on ? '#fff' : C.plum }}>BTC {m.cadence}m</Text>
+                    <Text style={{ fontWeight: '600', fontSize: 12, color: on ? '#e7d8ef' : C.ink3 }}>ends in {Math.floor(secs / 60)}:{String(secs % 60).padStart(2, '0')}</Text>
                   </Pressable>
                 );
               })}
@@ -93,7 +93,7 @@ export default function PostCall() {
               {(['up', 'down'] as const).map((d) => (
                 <Pressable key={d} onPress={() => setDir(d)} style={{ flex: 1, height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, backgroundColor: dir === d ? C.coral : 'transparent', borderBottomWidth: dir === d ? 4 : 0, borderBottomColor: C.coralEdge }}>
                   <Image source={d === 'up' ? art.rocket : art.anchor} style={{ width: 26, height: 26 }} />
-                  <Text style={{ fontFamily: F.display, fontSize: 17, color: dir === d ? '#fff' : C.ink2 }}>{d === 'up' ? 'Above' : 'Below'}</Text>
+                  <Text style={{ fontWeight: '800', fontSize: 17, color: dir === d ? '#fff' : C.ink2 }}>{d === 'up' ? 'Above' : 'Below'}</Text>
                 </Pressable>
               ))}
             </View>
@@ -102,7 +102,7 @@ export default function PostCall() {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Pill title="−50" size="sm" tone="ghost" onPress={() => nudge(-50)} />
               <TextInput value={strike} onChangeText={(t) => setStrike(t.replace(/[^0-9]/g, ''))} keyboardType="number-pad"
-                style={{ flex: 1, height: 52, borderRadius: 18, backgroundColor: '#fff', borderWidth: 2, borderColor: C.edge, textAlign: 'center', fontFamily: F.display, fontSize: 22, color: C.plum }} />
+                style={{ flex: 1, height: 52, borderRadius: 18, backgroundColor: '#fff', borderWidth: 2, borderColor: C.edge, textAlign: 'center', fontWeight: '800', fontSize: 22, color: C.plum }} />
               <Pill title="+50" size="sm" tone="ghost" onPress={() => nudge(50)} />
             </View>
             {market?.referencePrice ? <Body faint>Reference price {usd(market.referencePrice)}</Body> : null}
@@ -115,7 +115,7 @@ export default function PostCall() {
                     <View style={{ position: 'absolute', left: `${odds.band.min * 100}%`, width: `${(odds.band.max - odds.band.min) * 100}%`, top: 0, bottom: 0, backgroundColor: 'rgba(61,220,151,0.45)' }} />
                     <View style={{ position: 'absolute', left: `${Math.min(99, odds.probability * 100)}%`, width: 4, top: 0, bottom: 0, backgroundColor: odds.inBand ? C.mintInk : C.pinkInk }} />
                   </View>
-                  <Text style={{ fontFamily: F.display, fontSize: 18, color: odds.inBand ? C.mintInk : C.pinkInk }}>
+                  <Text style={{ fontWeight: '800', fontSize: 18, color: odds.inBand ? C.mintInk : C.pinkInk }}>
                     {pct(odds.probability)}% · {odds.inBand ? 'inside the 15–50% entry band' : 'outside the 15–50% band, Predict would refuse every tap'}
                   </Text>
                 </>
@@ -124,7 +124,7 @@ export default function PostCall() {
 
             <Kicker>Why</Kicker>
             <TextInput value={why} onChangeText={setWhy} placeholder="e.g. Green minute, momentum into the close" placeholderTextColor={C.ink3} maxLength={280} multiline
-              style={{ minHeight: 70, borderRadius: 18, backgroundColor: '#fff', borderWidth: 2, borderColor: C.edge, padding: 14, fontFamily: F.bodySemi, fontSize: 15, color: C.ink, textAlignVertical: 'top' }} />
+              style={{ minHeight: 70, borderRadius: 18, backgroundColor: '#fff', borderWidth: 2, borderColor: C.edge, padding: 14, fontWeight: '600', fontSize: 15, color: C.ink, textAlignVertical: 'top' }} />
             {post.error ? <ErrorNote text={post.error} /> : null}
             <Pill title="Post call to the crew" size="xl" icon={art.megaphone} busy={post.busy} disabled={!canPost}
               onPress={() => post.run(async () => {

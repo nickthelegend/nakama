@@ -4,31 +4,29 @@ import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import { C, F, art } from '../lib/theme';
 
-/** Chunky card: white face on a tan 3D edge, like the web's .c3. */
-export function Card({ children, style, edge = C.edge, face = C.panel }: { children: ReactNode; style?: StyleProp<ViewStyle>; edge?: string; face?: string }) {
-  return (
-    <View style={[s.cardEdge, { backgroundColor: edge }]}>
-      <View style={[s.card, { backgroundColor: face }, style]}>{children}</View>
-    </View>
-  );
+/** Rounded charcoal surface. `edge` is kept for call sites that used the old 3D edge; it is ignored. */
+export function Card({ children, style, face = C.surface }: { children: ReactNode; style?: StyleProp<ViewStyle>; edge?: string; face?: string }) {
+  return <View style={[s.card, { backgroundColor: face }, style]}>{children}</View>;
 }
 
-type Tone = 'coral' | 'plum' | 'butter' | 'mint' | 'off' | 'ghost';
-const tones: Record<Tone, { face: string; edge: string; ink: string }> = {
-  coral: { face: C.coral, edge: C.coralEdge, ink: '#fff' },
-  plum: { face: C.plum, edge: '#1f0e29', ink: '#fff' },
-  butter: { face: C.butter, edge: C.butterEdge, ink: C.plum2 },
-  mint: { face: C.mint, edge: C.mintEdge, ink: '#08311f' },
-  off: { face: C.off, edge: C.offEdge, ink: '#6c5a6c' },
-  ghost: { face: C.panel, edge: C.edge, ink: C.plum },
+type Tone = 'coral' | 'plum' | 'butter' | 'mint' | 'off' | 'ghost' | 'white' | 'black';
+const tones: Record<Tone, { face: string; ink: string; border?: string }> = {
+  coral: { face: C.coral, ink: '#fff' },
+  white: { face: '#f5f5f5', ink: '#141414' },
+  plum: { face: '#f5f5f5', ink: '#141414' },
+  butter: { face: '#f5f5f5', ink: '#141414' },
+  black: { face: '#141414', ink: '#fff' },
+  mint: { face: C.up, ink: '#06210f' },
+  off: { face: C.surface3, ink: C.ink3 },
+  ghost: { face: 'transparent', ink: C.ink, border: C.line2 },
 };
 
-/** Glossy 3D pill button that presses down into its edge. */
-export function Pill({ title, onPress, tone = 'coral', busy, disabled, size = 'md', icon, style }: {
-  title: string; onPress?: () => unknown; tone?: Tone; busy?: boolean; disabled?: boolean; size?: 'sm' | 'md' | 'xl'; icon?: any; style?: StyleProp<ViewStyle>;
+/** Pill button with a soft press (scale + haptic). */
+export function Pill({ title, onPress, tone = 'coral', busy, disabled, size = 'md', icon, right, style }: {
+  title: string; onPress?: () => unknown; tone?: Tone; busy?: boolean; disabled?: boolean; size?: 'sm' | 'md' | 'xl'; icon?: any; right?: ReactNode; style?: StyleProp<ViewStyle>;
 }) {
   const t = tones[disabled ? 'off' : tone];
-  const h = size === 'sm' ? 40 : size === 'xl' ? 60 : 52;
+  const h = size === 'sm' ? 40 : size === 'xl' ? 58 : 50;
   return (
     <Pressable
       accessibilityRole="button"
@@ -41,12 +39,10 @@ export function Pill({ title, onPress, tone = 'coral', busy, disabled, size = 'm
       style={style}
     >
       {({ pressed }) => (
-        <View style={{ borderRadius: 999, backgroundColor: t.edge, paddingBottom: pressed ? 2 : 5, marginTop: pressed ? 3 : 0 }}>
-          <View style={[s.pill, { height: h, backgroundColor: t.face, paddingHorizontal: size === 'sm' ? 16 : 22 }]}>
-            <View style={s.pillGloss} />
-            {busy ? <ActivityIndicator color={t.ink} /> : icon ? <Image source={icon} style={{ width: size === 'sm' ? 22 : 28, height: size === 'sm' ? 22 : 28 }} /> : null}
-            <Text style={[s.pillText, { color: t.ink, fontSize: size === 'sm' ? 14 : size === 'xl' ? 19 : 16 }]} numberOfLines={1}>{title}</Text>
-          </View>
+        <View style={[s.pill, { height: h, backgroundColor: t.face, paddingHorizontal: size === 'sm' ? 16 : 22, borderWidth: t.border ? 1 : 0, borderColor: t.border, transform: [{ scale: pressed ? 0.97 : 1 }], opacity: pressed ? 0.9 : 1 }]}>
+          {busy ? <ActivityIndicator color={t.ink} /> : icon ? <Image source={icon} style={{ width: size === 'sm' ? 20 : 26, height: size === 'sm' ? 20 : 26 }} /> : null}
+          <Text style={[s.pillText, { color: t.ink, fontSize: size === 'sm' ? 15 : size === 'xl' ? 18 : 16 }]} numberOfLines={1}>{title}</Text>
+          {right}
         </View>
       )}
     </Pressable>
@@ -55,11 +51,23 @@ export function Pill({ title, onPress, tone = 'coral', busy, disabled, size = 'm
 
 export function Chip({ text, tone = 'plum', style }: { text: string; tone?: 'plum' | 'coral' | 'butter' | 'mint' | 'pink'; style?: StyleProp<ViewStyle> }) {
   const m = {
-    plum: [C.plumSoft, C.plum], coral: [C.coralSoft, C.coralInk], butter: [C.butterSoft, C.butterInk], mint: [C.mintSoft, C.mintInk], pink: [C.pinkSoft, C.pinkInk],
+    plum: [C.surface3, C.ink2], coral: [C.coralSoft, C.coralInk], butter: [C.butterSoft, C.butterInk], mint: [C.upSoft, C.mintInk], pink: [C.downSoft, C.pinkInk],
   }[tone];
   return (
     <View style={[s.chip, { backgroundColor: m[0] }, style]}>
       <Text style={[s.chipText, { color: m[1] }]}>{text}</Text>
+    </View>
+  );
+}
+
+/** "nakama." wordmark with the lucky cat. */
+export function Wordmark({ size = 34 }: { size?: number }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+      <Image source={art.mascot} style={{ width: size * 1.15, height: size * 1.15 }} contentFit="contain" />
+      <Text style={{ fontFamily: F.wordmark, fontSize: size, lineHeight: size * 1.25, color: '#fff', includeFontPadding: false }}>
+        nakama<Text style={{ color: C.coral }}>.</Text>
+      </Text>
     </View>
   );
 }
@@ -72,14 +80,25 @@ export const Body = ({ children, style, faint }: { children: ReactNode; style?: 
 );
 export const Mono = ({ children, style }: { children: ReactNode; style?: StyleProp<TextStyle> }) => <Text style={[s.mono, style]}>{children}</Text>;
 
-/** Labelled empty / setup / error state with the mascot. */
+/** Designed empty / setup / error state with the lucky cat. */
 export function Empty({ title, body, mood = 'sleep', action }: { title: string; body?: string; mood?: 'sleep' | 'sad' | 'cheer'; action?: ReactNode }) {
   return (
     <View style={{ alignItems: 'center', paddingVertical: 18, paddingHorizontal: 12, gap: 8 }}>
-      <Image source={mood === 'sad' ? art.sad : mood === 'cheer' ? art.cheer : art.empty} style={{ width: 132, height: 132 }} contentFit="contain" />
+      <Image source={mood === 'sad' ? art.sad : mood === 'cheer' ? art.cheer : art.empty} style={{ width: 120, height: 120 }} contentFit="contain" />
       <H2 style={{ textAlign: 'center' }}>{title}</H2>
       {body ? <Body style={{ textAlign: 'center' }}>{body}</Body> : null}
       {action}
+    </View>
+  );
+}
+
+/** Loading row: skeleton bars instead of a bare spinner. */
+export function Skeleton({ rows = 3 }: { rows?: number }) {
+  return (
+    <View style={{ gap: 10 }}>
+      {Array.from({ length: rows }, (_, i) => (
+        <View key={i} style={{ height: 68, borderRadius: 22, backgroundColor: C.surface, opacity: 1 - i * 0.22 }} />
+      ))}
     </View>
   );
 }
@@ -110,18 +129,16 @@ export function useBusy() {
 }
 
 export const s = StyleSheet.create({
-  cardEdge: { borderRadius: 28, paddingBottom: 6, shadowColor: C.plum, shadowOpacity: 0.12, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 2 },
-  card: { borderRadius: 28, padding: 18, borderWidth: 2, borderColor: 'rgba(59,31,74,0.05)' },
-  pill: { borderRadius: 999, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, overflow: 'hidden' },
-  pillGloss: { position: 'absolute', top: 0, left: 0, right: 0, height: '45%', backgroundColor: 'rgba(255,255,255,0.18)' },
-  pillText: { fontFamily: F.display, letterSpacing: 0.3, includeFontPadding: false },
-  chip: { alignSelf: 'flex-start', height: 26, paddingHorizontal: 10, borderRadius: 999, justifyContent: 'center' },
-  chipText: { fontFamily: F.displayBold, fontSize: 12, includeFontPadding: false },
-  h1: { fontFamily: F.display, fontSize: 30, lineHeight: 34, color: C.plum, includeFontPadding: false },
-  h2: { fontFamily: F.display, fontSize: 21, lineHeight: 25, color: C.plum, includeFontPadding: false },
-  kicker: { fontFamily: F.display, fontSize: 12.5, letterSpacing: 1, color: C.coralInk, textTransform: 'uppercase' },
-  body: { fontFamily: F.body, fontSize: 15, lineHeight: 21, color: C.ink2 },
-  mono: { fontFamily: F.mono, fontSize: 12.5, color: C.ink },
-  err: { backgroundColor: C.pinkSoft, borderRadius: 16, padding: 12 },
-  errText: { fontFamily: F.bodySemi, color: C.pinkInk, fontSize: 14, lineHeight: 19 },
+  card: { borderRadius: 28, padding: 18 },
+  pill: { borderRadius: 999, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  pillText: { fontWeight: '700', letterSpacing: -0.2 },
+  chip: { alignSelf: 'flex-start', height: 28, paddingHorizontal: 12, borderRadius: 999, justifyContent: 'center' },
+  chipText: { fontWeight: '600', fontSize: 13 },
+  h1: { fontWeight: '700', fontSize: 30, lineHeight: 36, color: C.ink, letterSpacing: -0.6 },
+  h2: { fontWeight: '700', fontSize: 20, lineHeight: 25, color: C.ink, letterSpacing: -0.3 },
+  kicker: { fontWeight: '600', fontSize: 13, letterSpacing: 0.2, color: C.ink3 },
+  body: { fontWeight: '400', fontSize: 15, lineHeight: 21, color: C.ink2 },
+  mono: { fontFamily: F.mono, fontSize: 12, color: C.ink2 },
+  err: { backgroundColor: C.downSoft, borderRadius: 16, padding: 12 },
+  errText: { fontWeight: '600', color: C.pinkInk, fontSize: 14, lineHeight: 19 },
 });

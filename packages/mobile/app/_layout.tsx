@@ -34,13 +34,13 @@ export default function Root() {
   const [loaded] = useFonts({ Baloo2_700Bold, Baloo2_800ExtraBold, Urbanist_500Medium, Urbanist_600SemiBold, Urbanist_700Bold });
   if (!loaded)
     return (
-      <View style={{ flex: 1, backgroundColor: C.sun, alignItems: 'center', justifyContent: 'center' }}>
+      <View style={{ flex: 1, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' }}>
         <Image source={art.mascot} style={{ width: 160, height: 160 }} />
       </View>
     );
   return (
     <AppProvider>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
       <Gate />
     </AppProvider>
   );

@@ -1,19 +1,27 @@
-/** Nakama's web brand ("Kumi" crew room): cream and coral, chunky 3D-edged cards, Baloo 2 headings. */
+/**
+ * Nakama mobile: one coherent dark app. Charcoal surfaces, big confident system type,
+ * Nakama coral as the only accent, green/red only for up/down, Baloo 2 only in the wordmark.
+ */
 export const C = {
-  plum: '#3b1f4a', plum2: '#2a1436', plum3: '#52305f', plumSoft: '#efe6f5',
-  coral: '#ff6f59', coralHi: '#ff8a72', coralSoft: '#ffe6df', coralInk: '#c0402b', coralEdge: '#d4472f',
-  butter: '#ffd166', butterSoft: '#fff1cc', butterInk: '#855700', butterEdge: '#e0a92f',
-  mint: '#3ddc97', mintSoft: '#d9f7e9', mintInk: '#0e7348', mintEdge: '#1fa46b',
-  pink: '#ff8fc7', pinkSoft: '#ffe3f1', pinkInk: '#b02f73',
-  cream: '#fff4e6', cream2: '#fbe9d4', sun: '#ffe3a3', sun2: '#fff0cf',
-  panel: '#ffffff', panel2: '#fff9f1', panel3: '#f6ece0',
-  ink: '#2b1630', ink2: '#5d4a62', ink3: '#8b7a8c',
-  line: 'rgba(59,31,74,0.09)', edge: '#ecd9c3', offEdge: '#c4ae96', off: '#dccbb8',
+  bg: '#141414', surface: '#1c1c1c', surface2: '#242424', surface3: '#2c2c2c',
+  tint: '#e7e9dd', tintInk: '#141414', tintInk2: '#5c5f55', tintLine: 'rgba(20,20,20,0.08)',
+  coral: '#ff6f59', coralHi: '#ff8a72', coralSoft: 'rgba(255,111,89,0.14)', coralInk: '#ff8a72', coralEdge: '#d4472f',
+  up: '#2fbf71', upSoft: 'rgba(47,191,113,0.14)', down: '#e5484d', downSoft: 'rgba(229,72,77,0.16)',
+  ink: '#f5f5f5', ink2: '#a3a3a3', ink3: '#6b6b6b',
+  line: 'rgba(255,255,255,0.08)', line2: 'rgba(255,255,255,0.14)',
+  // legacy names kept so every screen maps onto the dark palette
+  plum: '#f5f5f5', plum2: '#141414', plum3: '#a3a3a3', plumSoft: '#2c2c2c',
+  butter: '#ffd166', butterSoft: 'rgba(255,209,102,0.12)', butterInk: '#ffd166', butterEdge: '#2c2c2c',
+  mint: '#2fbf71', mintSoft: 'rgba(47,191,113,0.14)', mintInk: '#3ddc97', mintEdge: '#1fa46b',
+  pink: '#e5484d', pinkSoft: 'rgba(229,72,77,0.16)', pinkInk: '#ff6b6f',
+  cream: '#141414', cream2: '#1c1c1c', sun: '#141414', sun2: '#1c1c1c',
+  panel: '#1c1c1c', panel2: '#222222', panel3: '#262626',
+  edge: '#1c1c1c', offEdge: '#2c2c2c', off: '#2c2c2c',
 };
+/** System sans (SF Pro on iOS) everywhere; Baloo 2 is reserved for the wordmark. */
 export const F = {
-  display: 'Baloo2_800ExtraBold', displayBold: 'Baloo2_700Bold',
-  body: 'Urbanist_500Medium', bodySemi: 'Urbanist_600SemiBold', bodyBold: 'Urbanist_700Bold',
-  mono: 'monospace',
+  wordmark: 'Baloo2_800ExtraBold',
+  mono: 'Menlo',
 };
 export const art = {
   logo: require('../assets/art/nakama-logo.webp'),

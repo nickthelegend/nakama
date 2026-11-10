@@ -64,7 +64,7 @@ export default function Wallet() {
 
         <Card face={C.plum} edge="#22102b" style={{ gap: 12 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text style={{ fontFamily: F.display, fontSize: 20, color: '#fff' }}>Fund your wallet</Text>
+            <Text style={{ fontWeight: '800', fontSize: 20, color: '#fff' }}>Fund your wallet</Text>
             <Image source={art.coin} style={{ width: 40, height: 40 }} />
           </View>
           <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -72,7 +72,7 @@ export default function Wallet() {
             <Balance label="USDC · for taps" value={bal ? bal.usdc.toFixed(2) : '…'} ok={usdcOk} need="2 USDC per tap" />
           </View>
           {balErr ? <ErrorNote text={balErr} /> : null}
-          <Text style={{ fontFamily: F.body, fontSize: 13.5, color: '#e7d8ef', lineHeight: 19 }}>
+          <Text style={{ fontWeight: '500', fontSize: 13.5, color: '#e7d8ef', lineHeight: 19 }}>
             {bal && gasOk && usdcOk
               ? 'Funded. Next, move USDC into your Predict account so taps can fill.'
               : 'Send a little SUI for gas and some USDC (native Sui USDC) to the address above from an exchange or another wallet. Nakama never funds wallets for you.'}
@@ -124,7 +124,7 @@ export default function Wallet() {
           </View>
           <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
             <TextInput value={custom} onChangeText={setCustom} placeholder="https://your-server/api" placeholderTextColor={C.ink3} autoCapitalize="none" autoCorrect={false}
-              style={{ flex: 1, height: 44, borderRadius: 14, backgroundColor: C.panel3, paddingHorizontal: 12, fontFamily: F.bodySemi, color: C.ink }} />
+              style={{ flex: 1, height: 44, borderRadius: 14, backgroundColor: C.panel3, paddingHorizontal: 12, fontWeight: '600', color: C.ink }} />
             <Pill title="Use" size="sm" tone="ghost" disabled={!/^https?:\/\//.test(custom)} onPress={() => app.changeBase(custom)} />
           </View>
           {app.lastPoll ? <Body faint style={{ fontSize: 12.5 }}>Crew check every 15 s · last {new Date(app.lastPoll.at).toLocaleTimeString()}{app.lastPoll.error ? ` · ${app.lastPoll.error}` : ''}</Body> : null}
@@ -137,9 +137,9 @@ export default function Wallet() {
 function Balance({ label, value, ok, need }: { label: string; value: string; ok: boolean; need: string }) {
   return (
     <View style={{ flex: 1, borderRadius: 18, padding: 12, backgroundColor: 'rgba(255,255,255,0.1)', gap: 2 }}>
-      <Text style={{ fontFamily: F.displayBold, fontSize: 12, color: '#cdb9d8' }}>{label}</Text>
-      <Text style={{ fontFamily: F.display, fontSize: 26, color: '#fff' }}>{value}</Text>
-      <Text style={{ fontFamily: F.bodySemi, fontSize: 12, color: ok ? C.mint : C.butter }}>{ok ? 'Ready' : `Needs ${need}`}</Text>
+      <Text style={{ fontWeight: '700', fontSize: 12, color: '#cdb9d8' }}>{label}</Text>
+      <Text style={{ fontWeight: '800', fontSize: 26, color: '#fff' }}>{value}</Text>
+      <Text style={{ fontWeight: '600', fontSize: 12, color: ok ? C.mint : C.butter }}>{ok ? 'Ready' : `Needs ${need}`}</Text>
     </View>
   );
 }

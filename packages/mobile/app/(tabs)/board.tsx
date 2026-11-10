@@ -66,11 +66,11 @@ export default function Board() {
         {ranked.map((r, i) => (
           <Card key={r.address} face={i === 0 && r.crewWins > 0 ? C.butterSoft : '#fff'} edge={i === 0 && r.crewWins > 0 ? C.butterEdge : C.edge} style={{ gap: 8, padding: 14 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <Text style={{ fontFamily: F.display, fontSize: 22, color: C.coral, width: 28 }}>{i + 1}</Text>
+              <Text style={{ fontWeight: '800', fontSize: 22, color: C.coral, width: 28 }}>{i + 1}</Text>
               <Image source={pick(art.avatars, r.address)} style={{ width: 42, height: 42, borderRadius: 21 }} />
               <View style={{ flex: 1 }}>
-                <Text style={{ fontFamily: F.display, fontSize: 17, color: C.plum }}>{r.address.toLowerCase() === app.address?.toLowerCase() ? 'You' : short(r.address)}</Text>
-                <Text style={{ fontFamily: F.bodySemi, fontSize: 12.5, color: C.ink2 }}>Crew: {r.crewWins}/{r.crewCalls} right</Text>
+                <Text style={{ fontWeight: '800', fontSize: 17, color: C.plum }}>{r.address.toLowerCase() === app.address?.toLowerCase() ? 'You' : short(r.address)}</Text>
+                <Text style={{ fontWeight: '600', fontSize: 12.5, color: C.ink2 }}>Crew: {r.crewWins}/{r.crewCalls} right</Text>
               </View>
               {i === 0 && r.crewWins > 0 ? <Image source={art.crown} style={{ width: 34, height: 34 }} /> : null}
             </View>
@@ -82,7 +82,7 @@ export default function Board() {
                   <Chip text={`streak ${r.chain.record.streak}`} tone="coral" />
                   {!r.chain.complete ? <Chip text="recent window" /> : null}
                 </>
-              ) : r.chainErr ? <Text style={{ fontFamily: F.bodySemi, fontSize: 12, color: C.pinkInk }}>{r.chainErr}</Text> : <Text style={{ fontFamily: F.body, fontSize: 12, color: C.ink3 }}>scanning mainnet…</Text>}
+              ) : r.chainErr ? <Text style={{ fontWeight: '600', fontSize: 12, color: C.pinkInk }}>{r.chainErr}</Text> : <Text style={{ fontWeight: '500', fontSize: 12, color: C.ink3 }}>scanning mainnet…</Text>}
             </View>
           </Card>
         ))}

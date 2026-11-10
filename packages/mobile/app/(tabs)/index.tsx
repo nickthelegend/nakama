@@ -1,35 +1,53 @@
-import { useCallback, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { Dimensions, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
+import Svg, { Circle, Path } from 'react-native-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Body, Card, Chip, Empty, ErrorNote, H2, Kicker, Pill } from '../../components/ui';
+import { Body, Empty, ErrorNote, Pill, Skeleton, Wordmark } from '../../components/ui';
+import { CallCard } from '../../components/CallCard';
+import { TAB_SPACE } from '../../components/TabBar';
 import { api, dirWord, usd } from '../../lib/api';
+import { balances } from '../../lib/sui';
 import { useApp } from '../../lib/store';
-import { C, F, art, pick } from '../../lib/theme';
-import type { Room, Status } from '../../lib/types';
+import { C, art, pick } from '../../lib/theme';
+import type { Crew, Room } from '../../lib/types';
 
-export default function Rooms() {
+const W = Dimensions.get('window').width;
+const CARD_W = W - 52;
+type Filter = 'All' | 'Public' | 'Private' | 'Live';
+type Row = { id: string; name: string; members: number; calls: number; isPublic: boolean; mine: boolean; live: string | null };
+
+export default function Home() {
   const app = useApp();
   const router = useRouter();
+  const [mine, setMine] = useState<Record<string, Crew>>({});
   const [rooms, setRooms] = useState<Room[] | null>(null);
-  const [status, setStatus] = useState<Status | null>(null);
+  const [usdc, setUsdc] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
+  const [filter, setFilter] = useState<Filter>('All');
+  const [page, setPage] = useState(0);
+  const me = app.address ?? '';
 
   const load = useCallback(async () => {
     try {
-      const [r, st] = await Promise.all([api<{ rooms: Room[] }>('/crews'), api<Status>('/status')]);
-      setRooms(r.rooms);
-      setStatus(st);
+      const [r, ...cs] = await Promise.all([
+        api<{ rooms: Room[] }>('/crews'),
+        ...app.crews.map((k) => api<Crew>(`/crews/${k.id}`).catch(() => null)),
+      ]);
+      setRooms((r as { rooms: Room[] }).rooms);
+      const map: Record<string, Crew> = {};
+      for (const c of cs as (Crew | null)[]) if (c) map[c.id] = c;
+      setMine(map);
       setError(null);
     } catch (e: any) {
       setError(e.message);
     }
-  }, [app.base]);
+    if (me) balances(me).then((b) => setUsdc(b.usdc)).catch(() => {});
+  }, [app.base, app.crews, me]);
   useFocusEffect(useCallback(() => {
     load();
-    const t = setInterval(load, 15000);
+    const t = setInterval(load, 10000);
     return () => clearInterval(t);
   }, [load]));
 
@@ -38,76 +56,154 @@ export default function Rooms() {
     await app.setActiveCrew(id);
     router.navigate('/(tabs)/crew');
   };
-  const mine = new Set(app.crews.map((c) => c.id));
+
+  // Live calls across my crews, soonest expiry first.
+  const live = useMemo(() => {
+    const now = Date.now();
+    return Object.values(mine)
+      .flatMap((c) => c.calls.filter((x) => x.status === 'live' && x.expiryMs > now).map((x) => ({ x, c })))
+      .sort((a, b) => a.x.expiryMs - b.x.expiryMs);
+  }, [mine]);
+
+  const rows: Row[] = useMemo(() => {
+    const now = Date.now();
+    const out = new Map<string, Row>();
+    for (const c of Object.values(mine)) {
+      const l = c.calls.filter((x) => x.status === 'live' && x.expiryMs > now).at(-1);
+      out.set(c.id, { id: c.id, name: c.name, members: c.members.length, calls: c.calls.length, isPublic: !!c.public, mine: true, live: l ? `BTC ${dirWord(l.setup.direction)} ${usd(l.strike)}` : null });
+    }
+    for (const r of rooms ?? [])
+      if (!out.has(r.id))
+        out.set(r.id, { id: r.id, name: r.name, members: r.members, calls: r.calls, isPublic: true, mine: false, live: r.live && r.live.expiryMs > now ? `BTC ${dirWord(r.live.direction)} ${usd(r.live.strike)}` : null });
+    return [...out.values()];
+  }, [mine, rooms]);
+  const shown = rows.filter((r) => filter === 'All' || (filter === 'Public' ? r.isPublic : filter === 'Private' ? !r.isPublic : !!r.live));
 
   return (
-    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: C.sun }}>
+    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: C.bg }}>
       <ScrollView
-        contentContainerStyle={{ padding: 16, paddingBottom: 32, gap: 16, backgroundColor: C.cream, flexGrow: 1 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} />}
+        contentContainerStyle={{ paddingBottom: TAB_SPACE + 10 }}
+        refreshControl={<RefreshControl tintColor="#fff" refreshing={false} onRefresh={load} />}
       >
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Image source={art.logo} style={{ width: 132, height: 64 }} contentFit="contain" />
-          <Chip text={status ? (status.mainnetWrites ? 'Live mainnet' : 'Dry-run server') : '…'} tone={status?.mainnetWrites ? 'mint' : 'butter'} />
+        {/* header */}
+        <View style={{ paddingHorizontal: 20, paddingTop: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Wordmark />
+          <Pressable accessibilityLabel="Find a crew" onPress={() => router.push('/scan')} hitSlop={12}>
+            <Svg width={28} height={28} viewBox="0 0 24 24"><Circle cx={11} cy={11} r={7} stroke="#fff" strokeWidth={2} fill="none" /><Path d="m16.5 16.5 4 4" stroke="#fff" strokeWidth={2} strokeLinecap="round" /></Svg>
+          </Pressable>
         </View>
 
-        <Card face={C.plum} edge="#22102b" style={{ gap: 10, overflow: 'hidden' }}>
-          <Image source={art.quick} style={{ position: 'absolute', right: -16, bottom: -18, width: 130, height: 130, opacity: 0.95 }} />
-          <Text style={{ fontFamily: F.display, fontSize: 24, lineHeight: 27, color: '#fff', maxWidth: '68%' }}>Your crew's BTC calls, one tap to join</Text>
-          <Text style={{ fontFamily: F.body, color: '#e7d8ef', maxWidth: '68%', fontSize: 14 }}>Start a crew or scan a friend's invite QR.</Text>
-          <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
-            <Pill title="Create crew" size="sm" onPress={() => router.push('/create')} />
-            <Pill title="Join with QR" size="sm" tone="butter" onPress={() => router.push('/scan')} />
+        {/* balance */}
+        <View style={{ paddingHorizontal: 20, marginTop: 18, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+          <View>
+            <Text style={{ color: C.ink2, fontSize: 17, fontWeight: '500' }}>Balance</Text>
+            <Text style={{ color: '#fff', fontSize: 36, fontWeight: '700', letterSpacing: -1 }}>
+              {usdc == null ? '$–' : `$${usdc.toFixed(2).split('.')[0]}`}
+              <Text style={{ color: C.ink2 }}>{usdc == null ? '' : `.${usdc.toFixed(2).split('.')[1]}`}</Text>
+            </Text>
+            <Text style={{ color: C.ink3, fontSize: 12.5, fontWeight: '500' }}>USDC in your wallet · Sui mainnet</Text>
           </View>
-        </Card>
+          <Pill title="Deposit" tone="white" onPress={() => router.navigate('/(tabs)/wallet')} style={{ marginBottom: 14 }} />
+        </View>
 
-        {app.crews.length > 0 && (
-          <View style={{ gap: 10 }}>
-            <Kicker>My crews</Kicker>
-            {app.crews.map((c) => (
-              <RoomRow key={c.id} id={c.id} name={c.name} sub={c.id === app.activeCrew ? 'Open now' : 'Tap to open'} onPress={() => open(c.id, c.name)} />
+        {/* featured live calls */}
+        <View style={{ marginTop: 18 }}>
+          {live.length ? (
+            <>
+              <ScrollView
+                horizontal
+                decelerationRate="fast"
+                snapToInterval={CARD_W + 12}
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
+                onMomentumScrollEnd={(e) => setPage(Math.round(e.nativeEvent.contentOffset.x / (CARD_W + 12)))}
+              >
+                {live.map(({ x, c }) => (
+                  <View key={x.id} style={{ width: CARD_W }}>
+                    <CallCard
+                      featured
+                      call={x}
+                      me={me}
+                      member={c.members.some((m) => m.toLowerCase() === me.toLowerCase())}
+                      crewName={c.name}
+                      members={c.members.length}
+                      past={c.calls.filter((y) => y.status === 'settled')}
+                      onChanged={load}
+                      onOpen={() => open(c.id, c.name)}
+                    />
+                  </View>
+                ))}
+              </ScrollView>
+              {live.length > 1 ? (
+                <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 12 }}>
+                  {live.map((l, i) => <View key={l.x.id} style={{ width: i === page ? 18 : 6, height: 6, borderRadius: 3, backgroundColor: i === page ? '#fff' : C.surface3 }} />)}
+                </View>
+              ) : null}
+            </>
+          ) : (
+            <View style={{ marginHorizontal: 20, backgroundColor: C.surface, borderRadius: 30, padding: 20, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+              <Image source={art.empty} style={{ width: 92, height: 92 }} contentFit="contain" />
+              <View style={{ flex: 1, gap: 6 }}>
+                <Text style={{ color: '#fff', fontSize: 20, fontWeight: '700', letterSpacing: -0.4 }}>No live calls</Text>
+                <Body>{app.crews.length ? 'Your crews are quiet. Post a call and everyone gets pinged.' : 'Join a crew to see its live BTC calls here.'}</Body>
+              </View>
+            </View>
+          )}
+        </View>
+
+        {/* crews */}
+        <View style={{ paddingHorizontal: 20, marginTop: 28, gap: 14 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={{ color: '#fff', fontSize: 26, fontWeight: '700', letterSpacing: -0.6 }}>Crews</Text>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <Pill title="+ New" tone="ghost" size="sm" onPress={() => router.push('/create')} />
+              <Pill title="Scan QR" tone="ghost" size="sm" onPress={() => router.push('/scan')} />
+            </View>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+            {(['All', 'Public', 'Private', 'Live'] as Filter[]).map((f) => (
+              <Pressable key={f} onPress={() => setFilter(f)} style={{ height: 40, paddingHorizontal: 18, borderRadius: 20, justifyContent: 'center', backgroundColor: filter === f ? '#f5f5f5' : 'transparent', borderWidth: 1, borderColor: filter === f ? '#f5f5f5' : C.line2 }}>
+                <Text style={{ fontSize: 16, fontWeight: '600', color: filter === f ? '#141414' : '#fff' }}>{f}</Text>
+              </Pressable>
             ))}
-          </View>
-        )}
-
-        <View style={{ gap: 10 }}>
-          <Kicker>Public crews</Kicker>
+          </ScrollView>
           {error ? <ErrorNote text={error} /> : null}
-          {rooms === null && !error ? <Body faint>Loading public crews…</Body> : null}
-          {rooms && rooms.length === 0 ? (
-            <Card><Empty title="No public crews yet" body="Be the first: create a public crew and it shows up here for everyone." /></Card>
+          {rooms === null && !error ? <Skeleton /> : null}
+          {rooms !== null && shown.length === 0 ? (
+            <View style={{ backgroundColor: C.surface, borderRadius: 26 }}>
+              <Empty
+                title={filter === 'Live' ? 'Nothing live right now' : 'No crews here yet'}
+                body={filter === 'All' ? 'Start one, or scan a friend’s invite QR.' : 'Try another filter, or start a crew.'}
+                action={<Pill title="Create a crew" onPress={() => router.push('/create')} style={{ marginTop: 6 }} />}
+              />
+            </View>
           ) : null}
-          {rooms?.map((r) => (
-            <RoomRow
-              key={r.id}
-              id={r.id}
-              name={r.name}
-              sub={`${r.members} member${r.members === 1 ? '' : 's'} · ${r.calls} call${r.calls === 1 ? '' : 's'}${r.readOnlyDemo ? ' · preview' : ''}`}
-              live={r.live && r.live.expiryMs > Date.now() ? `LIVE · BTC ${dirWord(r.live.direction)} ${usd(r.live.strike)} · ${r.live.taps} taps` : null}
-              joined={mine.has(r.id)}
-              onPress={() => open(r.id, r.name)}
-            />
-          ))}
+          {shown.length ? (
+            <View style={{ backgroundColor: C.surface, borderRadius: 26, overflow: 'hidden' }}>
+              {shown.map((r, i) => (
+                <Pressable key={r.id} onPress={() => open(r.id, r.name)} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, paddingRight: 16, borderTopWidth: i ? 1 : 0, borderTopColor: C.line, backgroundColor: pressed ? C.surface2 : 'transparent' })}>
+                  <Image source={pick(art.crews, r.id)} style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: C.surface3 }} />
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={{ color: '#fff', fontSize: 17, fontWeight: '600' }} numberOfLines={1}>{r.name}</Text>
+                    <Text style={{ color: C.ink2, fontSize: 14 }} numberOfLines={1}>
+                      {r.live ?? `${r.members} member${r.members === 1 ? '' : 's'} · ${r.calls} call${r.calls === 1 ? '' : 's'}`}
+                      {r.live ? '' : ` · ${r.isPublic ? 'public' : 'private'}`}{r.mine ? ' · joined' : ''}
+                    </Text>
+                  </View>
+                  {r.live ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, height: 34, paddingHorizontal: 12, borderRadius: 17, backgroundColor: C.down }}>
+                      <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: '#fff' }} />
+                      <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>Live</Text>
+                    </View>
+                  ) : (
+                    <Text style={{ color: C.ink3, fontSize: 22 }}>›</Text>
+                  )}
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
         </View>
       </ScrollView>
     </SafeAreaView>
-  );
-}
-
-function RoomRow({ id, name, sub, live, joined, onPress }: { id: string; name: string; sub: string; live?: string | null; joined?: boolean; onPress: () => void }) {
-  return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`Open ${name}`}>
-      {({ pressed }) => (
-        <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, transform: [{ translateY: pressed ? 3 : 0 }] }}>
-          <Image source={pick(art.crews, id)} style={{ width: 56, height: 56, borderRadius: 18, backgroundColor: C.butterSoft }} />
-          <View style={{ flex: 1, gap: 3 }}>
-            <H2 style={{ fontSize: 18 }}>{name}</H2>
-            <Body style={{ fontSize: 13 }}>{sub}</Body>
-            {live ? <Chip text={live} tone="coral" /> : null}
-          </View>
-          {joined ? <Chip text="Mine" tone="mint" /> : <Text style={{ fontFamily: F.display, fontSize: 22, color: C.coral }}>›</Text>}
-        </Card>
-      )}
-    </Pressable>
   );
 }
