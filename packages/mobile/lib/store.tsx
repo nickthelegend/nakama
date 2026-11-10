@@ -1,10 +1,10 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import * as Notifications from 'expo-notifications';
-import { api, apiBase, dirWord, loadApiBase, setApiBase, usd } from './api';
+import { apiBase, loadApiBase, setApiBase } from './api';
+import { checkCrews, registerBackgroundCheck, rememberAddress, resetSeen } from './watch';
 import { createWallet, loadWallet } from './wallet';
-import type { Crew } from './types';
 
 type Known = { id: string; name: string };
 type Ctx = {
@@ -15,6 +15,7 @@ type Ctx = {
   crews: Known[];
   activeCrew: string | null;
   lastPoll: { at: number; error: string | null } | null;
+  bgStatus: string | null;
   createWallet: () => Promise<string>;
   finishOnboarding: () => Promise<void>;
   rememberCrew: (c: { id: string; name: string }) => Promise<void>;
@@ -45,13 +46,6 @@ export async function askNotificationPermission() {
   return (await Notifications.requestPermissionsAsync()).granted;
 }
 
-function notify(title: string, body: string, crewId: string) {
-  return Notifications.scheduleNotificationAsync({
-    content: { title, body, data: { crewId }, ...(Platform.OS === 'android' ? { channelId: 'crew-calls' } : {}) } as any,
-    trigger: Platform.OS === 'android' ? ({ channelId: 'crew-calls' } as any) : null,
-  });
-}
-
 export function AppProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [address, setAddress] = useState<string | null>(null);
@@ -60,8 +54,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [crews, setCrews] = useState<Known[]>([]);
   const [activeCrew, setActive] = useState<string | null>(null);
   const [lastPoll, setLastPoll] = useState<Ctx['lastPoll']>(null);
-  /** callId -> status seen at the last poll; null until the first poll so old calls never fire. */
-  const seen = useRef<Map<string, string> | null>(null);
+  const [bgStatus, setBgStatus] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -86,34 +79,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     await SecureStore.setItemAsync(K.active, id);
   }, []);
 
-  // Poll every crew this phone belongs to; a new call by someone else or a settled call becomes a local notification.
-  // Android keeps the JS timer running while Expo Go stays alive in the background.
+  // Foreground: check every crew this phone belongs to every 15 s (new calls, crewmates' taps, settled calls).
+  // Background: the same check runs as an OS background task (see lib/watch.ts).
+  useEffect(() => {
+    if (!ready || !address) return;
+    rememberAddress(address);
+    registerBackgroundCheck().then(setBgStatus);
+  }, [ready, address]);
   useEffect(() => {
     if (!ready || !address || !crews.length) return;
     let stop = false;
     const tick = async () => {
-      const first = seen.current === null;
-      const map = seen.current ?? new Map<string, string>();
-      let error: string | null = null;
-      for (const k of crews) {
-        try {
-          const c = await api<Crew>(`/crews/${k.id}`, undefined, 20000);
-          for (const x of c.calls) {
-            const prev = map.get(x.id);
-            if (!first && prev === undefined && x.caller.toLowerCase() !== address.toLowerCase() && x.status === 'live')
-              notify(`📣 New call in ${c.name}`, `BTC ${dirWord(x.setup.direction)} ${usd(x.strike)} in ${x.setup.cadence}m · "${x.why}" · tap in with 2 USDC`, c.id);
-            if (!first && prev && prev !== 'settled' && x.status === 'settled') {
-              const hits = x.orders.filter((o) => o.hit).length;
-              notify(`🏁 Call settled in ${c.name}`, `BTC ${dirWord(x.setup.direction)} ${usd(x.strike)}: ${x.orders.length ? `${hits}/${x.orders.length} taps won` : 'no taps'} (Pyth price)`, c.id);
-            }
-            map.set(x.id, x.status);
-          }
-        } catch (e: any) {
-          error = e.message;
-        }
-      }
-      seen.current = map;
-      if (!stop) setLastPoll({ at: Date.now(), error });
+      const r = await checkCrews(address, crews).catch((e) => ({ notified: 0, error: String(e?.message ?? e) }));
+      if (!stop) setLastPoll({ at: Date.now(), error: r.error });
     };
     tick();
     const t = setInterval(tick, POLL_MS);
@@ -124,7 +102,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [ready, address, crews, base]);
 
   const value: Ctx = {
-    ready, address, onboarded, base, crews, activeCrew, lastPoll,
+    ready, address, onboarded, base, crews, activeCrew, lastPoll, bgStatus,
     createWallet: async () => {
       const a = await createWallet();
       setAddress(a);
@@ -137,7 +115,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     rememberCrew,
     setActiveCrew,
     changeBase: async (b) => {
-      seen.current = null;
+      await resetSeen();
       setBase(await setApiBase(b));
     },
   };

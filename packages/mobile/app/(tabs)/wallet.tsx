@@ -127,6 +127,7 @@ export default function Wallet() {
             <Pill title="Use" size="sm" tone="ghost" disabled={!isUrl(custom)} onPress={() => app.changeBase(custom)} />
           </View>
           {app.lastPoll ? <Body faint style={{ fontSize: 12.5 }}>Crew check every 15 s · last {new Date(app.lastPoll.at).toLocaleTimeString()}{app.lastPoll.error ? ` · ${app.lastPoll.error}` : ''}</Body> : null}
+          {app.bgStatus ? <Body faint style={{ fontSize: 12.5 }}>{app.bgStatus}</Body> : null}
         </View>
       </ScrollView>
     </SafeAreaView>
