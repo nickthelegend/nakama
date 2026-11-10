@@ -61,10 +61,11 @@ export default function PostCall() {
     setOddsErr(null);
     const k = Number(strike);
     if (!market || !Number.isFinite(k) || k <= 0) return;
-    const t = setTimeout(() => {
-      api<Odds>(`/odds?marketId=${market.id}&direction=${dir}&strike=${k}`).then(setOdds).catch((e) => setOddsErr(e.message));
-    }, 350);
-    return () => clearTimeout(t);
+    // The price moves every second, so the band is re-read every 6 s, not only when the strike changes.
+    const pull = () => api<Odds>(`/odds?marketId=${market.id}&direction=${dir}&strike=${k}`).then((o) => { setOdds(o); setOddsErr(null); }).catch((e) => setOddsErr(e.message));
+    const t = setTimeout(pull, 350);
+    const i = setInterval(pull, 6000);
+    return () => { clearTimeout(t); clearInterval(i); };
   }, [market?.id, dir, strike]);
 
   const nudge = (d: number) => setStrike((v) => String(Math.max(1, Math.round(Number(v || 0) + d))));
