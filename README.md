@@ -100,7 +100,7 @@ cp .env.example .env
 pnpm dev
 ```
 
-Open <http://localhost:5173>. Set `NAKAMA_PORT` and `NAKAMA_VITE_PORT` to use other ports; Vite proxies `/api` to the matching server port. Create a crew, copy the invite URL, connect each member's Sui wallet and join. A member posts a call on one of the live BTC/USD 1m or 5m markets. The card shows a countdown, who joined, similar crew results and recalled Walrus blob links. A member presses the join button to get a Predict quote and transaction simulation. With `NAKAMA_ALLOW_MAINNET=I_ACKNOWLEDGE_REAL_USDC`, the wallet signs and the server sends the signed transaction through Tatum. Without that exact value, the flow ends after simulation and clearly says dry-run only. A funded Predict account is required for an accepted enqueue; native USDC in a wallet alone is insufficient.
+Open <http://localhost:5173>: the landing page is `/`, the lobby `/app`, the crew room `/room` and the scoreboard `/board` (invite links `/?crew=<id>` open the lobby). Set `NAKAMA_PORT` and `NAKAMA_VITE_PORT` to use other ports; Vite proxies `/api` to the matching server port. Create a crew, copy the invite URL, connect each member's Sui wallet and join. A member posts a call on one of the live BTC/USD 1m or 5m markets. The card shows a countdown, who joined, similar crew results and recalled Walrus blob links. A member presses the join button to get a Predict quote and transaction simulation. With `NAKAMA_ALLOW_MAINNET=I_ACKNOWLEDGE_REAL_USDC`, the wallet signs and the server sends the signed transaction through Tatum. Without that exact value, the flow ends after simulation and clearly says dry-run only. A funded Predict account is required for an accepted enqueue; native USDC in a wallet alone is insufficient.
 
 Predict admits a new one-sided bet only while its win probability is inside the 15–50% entry band. `GET /odds` and `GET /calls/:id/odds` read the live pricer for a strike. The composer shows the odds under the strike and disables **Post** outside the band, and `POST /crews/:id/calls` refuses such calls. The live call card polls its odds every 8 seconds, draws the band, and shows **Entry closed** once the strike drifts out, before anyone taps into a refusal.
 
@@ -136,7 +136,7 @@ The Tatum-backed Sui client, Predict market and plan helpers, and Walrus Memory 
 
 ## Art
 
-Art generated with ChatGPT (image generation), directed in [docs/ART.md](docs/ART.md); source PNGs stay out of git and the web app ships WebP copies in `packages/web/public/art/`.
+Art generated with ChatGPT (image generation), directed in [docs/ART.md](docs/ART.md); source PNGs stay out of git and the web app ships WebP copies in `packages/web/public/art/`. BTC, SUI and USDC logos are from [@web3icons/core](https://github.com/0xa3k5/web3icons) (MIT), bundled into the app.
 
 ## AI and art disclosure
 
