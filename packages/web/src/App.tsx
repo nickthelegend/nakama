@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNakama, type N } from './state';
 import { Hud, PhoneTabs } from './hud';
 import { Landing } from './pages/Landing';
-import { Lobby } from './pages/Lobby';
-import { Room } from './pages/Room';
+import { Shell } from './pages/Shell';
 import { Board } from './pages/Board';
 import { TxPage } from './pages/TxPage';
 
@@ -24,13 +23,13 @@ export function App() {
   }, [path]);
   const n = useNakama();
   let page;
-  if (path === '/app') page = <Lobby n={n} />;
-  else if (path === '/room') page = <Room n={n} />;
+  const shell = path === '/app' || path === '/room';
+  if (shell) page = <Shell n={n} />;
   else if (path === '/board') page = <Board n={n} />;
   else if (path === '/tx') page = <TxPage n={n} />;
   else page = <Landing n={n} />;
   return (
-    <>
+    <div className={shell ? 'frame' : undefined}>
       {n.demoSigner && (
         <div className="demo-signer-badge" role="status">
           Demo signer · server-held demo key · {String(n.status?.rpc ?? '').includes('LOCAL FORK') ? 'LOCAL FORK of Sui mainnet · no real funds' : 'real mainnet funds'}
@@ -38,7 +37,7 @@ export function App() {
       )}
       <Hud path={path} n={n} />
       {page}
-      {path !== '/' && path !== '/room' && <PhoneTabs path={path} />}
-    </>
+      {path !== '/' && !shell && <PhoneTabs path={path} />}
+    </div>
   );
 }

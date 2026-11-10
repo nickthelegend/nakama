@@ -108,7 +108,7 @@ export function Toast({ n }: { n: N }) {
   return (
     <div className={`toast3 ${bad ? 'bad' : ok ? 'ok' : ''}`} role="status" data-film="toast">
       <img src={bad ? '/art/v2/nakama-mascot-sad.webp' : ok ? '/art/v2/nakama-mascot-cheer.webp' : '/art/v2/nakama-mascot.webp'} alt="" />
-      <span>{ok && /^Order queued: (\S+)$/.test(n.message) ? <><b>Order queued{n.forkMode ? ' on the LOCAL FORK' : ''}</b><small>Signed in your own wallet · <Tx digest={n.message.split(': ')[1]} label="order" /></small></> : <small>{n.message}</small>}</span>
+      <span>{ok && /^Order queued: (\S+)$/.test(n.message) ? <><b>Order queued{n.forkMode ? ' on the LOCAL FORK' : ''}</b><small>Signed in your own wallet · <Tx digest={n.message.split(': ')[1]} label="order" /></small></> : ok && /^Deposited.*: (\S+)$/.test(n.message) ? <><b>{n.message.split(': ')[0]}</b><small>Into your own Predict account · <Tx digest={n.message.split(': ')[1]} label="deposit" /></small></> : <small>{n.message}</small>}</span>
     </div>
   );
 }
@@ -547,7 +547,8 @@ export function FundCard({ n }: { n: N }) {
     if (!plan?.transaction) return;
     const signedTx = await n.kit.signTransaction({ transaction: plan.transaction });
     const sent = await api<{ digest: string }>('/execute', { bytes: signedTx.bytes, signature: signedTx.signature });
-    setPlan(null); setNote(`Deposited${n.forkMode ? ' on the LOCAL FORK' : ''}: ${sent.digest}`);
+    const msg = `Deposited${n.forkMode ? ' on the LOCAL FORK' : ''}: ${sent.digest}`;
+    setPlan(null); setNote(msg); n.notify(msg);
   });
   return (
     <section className="c3 fund3" aria-label="Fund your Predict account">

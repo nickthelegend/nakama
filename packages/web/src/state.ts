@@ -426,7 +426,7 @@ export function useNakama() {
     message, tapResult, busy, now, recap, remembered, active, latest, joined, mineIn, odds, oddsError, outOfBand, market, strikeValue,
     draftOdds, draftOutOfBand, secondsLeft, openMarkets, create, join, postCall, oneTap, loadRecap, rememberHistory, board, boardLoaded,
     leader, size, boosted, liveMode, suggestedStrike, loadingCrew, crewFailed, crewError, next1, next5, forward, clock, settledCalls,
-    crewWins, bestStreak, me, demoSigner, forgetCrew,
+    crewWins, bestStreak, me, demoSigner, forgetCrew, notify: setMessage,
   };
 }
 export type N = ReturnType<typeof useNakama>;
