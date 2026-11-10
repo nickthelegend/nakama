@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ConnectButton } from '@mysten/dapp-kit-react/ui';
 import type { Call, Crew, Direction, Market, N, Order } from './state';
 import { api, dirWord, pct } from './state';
+import { ModeBadge } from './hud';
 import { Avatar, Ic, Notice, OddsBar, Recalled, TokenLogo, Tx, crewChar, short, signed, toneOf, usd } from './ui';
 
 export const callTitle = (c: Pick<Call, 'setup' | 'strike' | 'upper'>) =>
@@ -22,9 +23,7 @@ export function LiveCall({ n, call }: { n: N; call: Call }) {
           <span className="mt-k">LIVE CALL · BY {call.caller === n.owner ? 'YOU' : short(call.caller).toUpperCase()} · {call.setup.cadence}-MIN MARKET</span>
           <b>{callTitle(call)}</b>
         </div>
-        <span className={`timer3 ${s <= 30 ? 'urgent' : ''}`} role="timer" aria-label={`${s} seconds until the market closes`}>
-          <Ic name="clock" size={14} />{n.clock(call.expiryMs)}
-        </span>
+        <CallRing seconds={s} total={call.setup.cadence * 60} label={n.clock(call.expiryMs)} />
       </div>
       {call.why && <p className="cc-why">“{call.why}”</p>}
       <div className="cc-odds">
@@ -50,6 +49,23 @@ export function LiveCall({ n, call }: { n: N; call: Call }) {
         </div>
       )}
       <Recalled ids={call.recalled} />
+      <ModeBadge n={n} />
+    </div>
+  );
+}
+
+/** The call's countdown as a chunky ring that drains, and pulses in the last 30 seconds. */
+function CallRing({ seconds, total, label }: { seconds: number; total: number; label: string }) {
+  const r = 30;
+  const c = 2 * Math.PI * r;
+  const frac = Math.max(0, Math.min(1, seconds / total));
+  return (
+    <div className={`ring3 ${seconds <= 30 ? 'urgent' : ''}`} role="timer" aria-label={`${seconds} seconds until the market closes`} data-film="ring">
+      <svg viewBox="0 0 72 72" width="76" height="76" aria-hidden="true">
+        <circle cx="36" cy="36" r={r} className="ring3-track" />
+        <circle cx="36" cy="36" r={r} className="ring3-fill" strokeDasharray={c} strokeDashoffset={c * (1 - frac)} transform="rotate(-90 36 36)" />
+      </svg>
+      <span><b className="mono">{label}</b><small>left</small></span>
     </div>
   );
 }
@@ -287,17 +303,23 @@ export function Receipts({ n }: { n: N }) {
   );
 }
 
-/** Pyth settled the last call: who won, who lost, every SuiScan link and the Walrus memory of it. */
+/** Pyth settled the last call: a big cheer or a big cry, then who won, who lost, every SuiScan link and its Walrus memory. */
 export function ResultCard({ n }: { n: N }) {
   const c = n.latest;
   if (!c || c.status !== 'settled') return null;
-  const won = c.orders.some((o) => o.hit);
+  const winners = c.orders.filter((o) => o.hit).length;
+  const won = winners > 0;
+  const net = c.orders.reduce((s, o) => s + (o.pnl ?? 0), 0);
   return (
     <section className={`c3 reveal3 ${won ? 'win' : 'loss'}`} aria-label="Last call settled" data-film="result">
-      <img src={won ? '/art/v2/nakama-mascot-cheer.webp' : '/art/v2/nakama-mascot-sad.webp'} alt={won ? 'The lucky cat cheers' : 'The lucky cat cries'} />
-      <div>
-        <span className="k">LAST CALL SETTLED · PYTH PRICE</span>
-        <h2>{callTitle(c)}: {c.orders.filter((o) => o.hit).length} won · {c.orders.length} in</h2>
+      <div className="fx" aria-hidden>{Array.from({ length: 18 }, (_, i) => <i key={i} style={{ '--i': i } as React.CSSProperties} />)}</div>
+      <div className="reveal-cat">
+        <img src={won ? '/art/v2/nakama-mascot-cheer.webp' : '/art/v2/nakama-mascot-sad.webp'} alt={won ? 'The lucky cat cheers' : 'The lucky cat cries'} />
+      </div>
+      <div className="reveal-body">
+        <span className="k">LAST CALL SETTLED · PYTH PRICE · {callTitle(c).toUpperCase()}</span>
+        <h2 className="reveal-big">{won ? (winners === c.orders.length ? 'THE CREW WON!' : `${winners} OF ${c.orders.length} WON!`) : 'NOT THIS TIME'}</h2>
+        <p className="reveal-net">Crew net <b className={net > 0 ? 'up' : net < 0 ? 'down' : ''}>{signed(net)} USDC</b> · {c.orders.length} tapped in</p>
         {c.orders.map((o) => (
           <div key={o.digest} className={`result3 ${o.hit ? 'win' : 'loss'}`}>
             <Avatar address={o.address} size={30} />
@@ -417,16 +439,16 @@ export function Scoreboard({ n }: { n: N }) {
       ) : (
         <div className="table-wrap">
           <table className="table">
-            <thead><tr><th>#</th><th>Member</th><th className="num">Won</th><th className="num">Streak</th><th className="num">P&amp;L (USDC)</th></tr></thead>
+            <thead><tr><th className="hide-sm">#</th><th>Member</th><th className="num">Won</th><th className="num hide-sm">Streak</th><th className="num">P&amp;L (USDC)</th></tr></thead>
             <tbody>
               {rows.map((m, i) => (
                 <tr key={m.address} className={m.address === n.owner ? 'me' : ''}>
-                  <td><span className="rank-n">{i + 1}</span></td>
+                  <td className="hide-sm"><span className="rank-n">{i + 1}</span></td>
                   <td><span className="row" style={{ gap: 8 }}><Avatar address={m.address} /><span className="mono">{m.address === n.owner ? 'You' : short(m.address)}</span>{m.address === n.leader && <img className="crown" src="/art/v2/nakama-icon-crown.webp" alt="Crew leader by P&L" />}</span></td>
                   {n.boardLoaded(m) ? (
                     <>
                       <td className="num">{m.wins}/{m.calls}</td>
-                      <td className="num">{m.streak > 0 ? <span className="streak3"><img src="/art/v2/nakama-icon-fire.webp" alt="" />{m.streak}</span> : 0}</td>
+                      <td className="num hide-sm">{m.streak > 0 ? <span className="streak3"><img src="/art/v2/nakama-icon-fire.webp" alt="" />{m.streak}</span> : 0}</td>
                       <td className={`num ${m.pnl > 0 ? 'up' : m.pnl < 0 ? 'down' : ''}`}>{signed(m.pnl)}</td>
                     </>
                   ) : (

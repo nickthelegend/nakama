@@ -1,5 +1,6 @@
 import type { N } from '../state';
 import { CallBuilder, CrewCard, CrewState, Duo, EventRow, FundCard, LiveCall, PlayerCard, Receipts, RecentCalls, ResultCard, SetupNotice, TapButton, Toast, callTitle, crewEvents } from '../parts';
+import { ModeBadge } from '../hud';
 import { CrewAvatar, Ic, Link, SuiMark, TokenLogo, short, usd } from '../ui';
 
 export function Lobby({ n }: { n: N }) {
@@ -41,7 +42,7 @@ export function Lobby({ n }: { n: N }) {
         </>
       )}
       <footer className="lobby-foot">
-        <span><b>NAKAMA</b> 仲間 · DeepBook Predict on Sui mainnet · memory on Walrus · reads via {n.status?.rpc ?? '…'}</span>
+        <span><b>NAKAMA</b> 仲間 · DeepBook Predict on Sui mainnet · memory on Walrus <ModeBadge n={n} /></span>
         <span>Members sign their own orders · art generated with ChatGPT · MIT · © 2026 Nivesh Gajengi</span>
       </footer>
     </main>

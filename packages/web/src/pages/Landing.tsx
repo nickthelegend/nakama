@@ -25,7 +25,7 @@ export function Landing({ n }: { n: N }) {
         <div className="l-hero-in">
           <div>
             <span className="kicker"><b>LIVE</b><SuiMark size={16} />Sui mainnet · <TokenLogo sym="BTC" size={16} />DeepBook Predict · <MemoryGlyph size={14} />Walrus</span>
-            <h1>Your group chat makes <em>the call.</em></h1>
+            <h1 className="l-h1"><span className="l-line">Your group chat</span> <span className="l-line">makes <em>the call.</em><img className="l-cat" src="/art/v2/nakama-mascot-cheer.webp" alt="" /></span></h1>
             <p className="lead">One friend calls BTC above a price in 5 minutes. Everyone taps in once with <code>2 USDC</code> from their own wallet. Pyth settles it, and the scoreboard remembers who's right.</p>
             <div className="l-cta">
               <Link to="/app" className="b3">OPEN NAKAMA <Ic name="arrow" size={18} /></Link>
