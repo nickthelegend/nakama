@@ -25,7 +25,9 @@ function Gate() {
       <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
       <Stack.Screen name="create" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
       <Stack.Screen name="scan" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
-      <Stack.Screen name="call" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+      <Stack.Screen name="call" options={{ presentation: 'formSheet', sheetAllowedDetents: [0.92], sheetGrabberVisible: true, sheetCornerRadius: 28, contentStyle: { backgroundColor: C.bg } }} />
+      <Stack.Screen name="invite" options={{ presentation: 'formSheet', sheetAllowedDetents: [0.9], sheetGrabberVisible: true, sheetCornerRadius: 28, contentStyle: { backgroundColor: C.bg } }} />
+      <Stack.Screen name="room/[id]" options={{ animation: 'slide_from_right', gestureEnabled: true }} />
     </Stack>
   );
 }

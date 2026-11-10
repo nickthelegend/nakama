@@ -46,7 +46,7 @@ export default function CreateCrew() {
           await app.rememberCrew({ id: c.id, name: c.name });
           await app.setActiveCrew(c.id);
           router.back();
-          router.navigate('/(tabs)/crew');
+          router.push({ pathname: '/room/[id]', params: { id: c.id } });
         })} />
       </ScrollView>
     </SafeAreaView>

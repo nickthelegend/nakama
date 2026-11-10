@@ -45,7 +45,7 @@ export default function JoinCrew() {
                 const c = already ? crew : await api<Crew>(`/crews/${crew.id}/join`, { address: app.address });
                 await app.rememberCrew({ id: c.id, name: c.name });
                 await app.setActiveCrew(c.id);
-                router.replace('/(tabs)/crew');
+                router.replace({ pathname: '/room/[id]', params: { id: c.id } });
               })} />
             </>
           ) : null}

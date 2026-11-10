@@ -54,7 +54,7 @@ export default function Home() {
   const open = async (id: string, name: string) => {
     await app.rememberCrew({ id, name });
     await app.setActiveCrew(id);
-    router.navigate('/(tabs)/crew');
+    router.push({ pathname: '/room/[id]', params: { id } });
   };
 
   // Live calls across my crews, soonest expiry first.
