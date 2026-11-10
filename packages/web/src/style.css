@@ -1182,3 +1182,7 @@ h1, h2, h3, h4, .brand, .trade-title b, .big, .v, .bal3 b, .boxes3 b { font-fami
 .cc-market { justify-self: start; font-size: 12.5px; color: #fff; opacity: .9; text-decoration: underline dotted; text-underline-offset: 3px; }
 .call-card.dir-down .cc-market { color: #e8d8ef; }
 .invite-url { grid-column: 1 / -1; padding: 8px 12px; border-radius: 12px; background: var(--butter-soft); font-size: 13px; color: var(--plum); overflow-wrap: anywhere; text-align: center; }
+.txc { min-width: 0; overflow: hidden; }
+.txc .trade-row { min-width: 0; }
+.txc .trade-row .w { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
+.txc .chip { flex: none; }

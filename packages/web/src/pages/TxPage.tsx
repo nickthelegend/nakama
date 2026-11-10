@@ -16,7 +16,7 @@ type Tx = {
   objectChanges: { type: string; objectType: string | null; objectId: string }[];
 };
 const coin = (t: string) => (t.endsWith('::usdc::USDC') ? ['USDC', 6] : t.endsWith('::sui::SUI') ? ['SUI', 9] : [t.split('::').pop() ?? t, 0]) as [string, number];
-const typeName = (t: string) => t.replace(/0x[0-9a-f]{20,}/g, (a) => short(a));
+const typeName = (t: string) => t.replace(/0x[0-9a-f]{20,}/g, (a) => short(a)).replace(/^0x0+2::dynamic_field::Field<(.*)>$/, 'dynamic field · $1');
 
 /** A LOCAL FORK transaction, read from the fork's own RPC: SuiScan cannot see these. */
 export function TxPage({ n }: { n: N }) {
