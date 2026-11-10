@@ -436,7 +436,7 @@ export function Scoreboard({ n }: { n: N }) {
   return (
     <section className="c3 score3" id="board" aria-label="Crew scoreboard" data-film="scoreboard">
       <div className="sec-head">
-        <div><span className="k">{n.status?.memoryConfigured ? 'FROM WALRUS MEMORY AND SETTLED CALLS' : 'FROM ON-CHAIN PREDICT HISTORY'}</span><h2>Crew scoreboard</h2></div>
+        <div><span className="k">{n.forkMode ? 'FROM THIS CREW’S CALLS ON THE LOCAL FORK' : n.status?.memoryConfigured ? 'FROM WALRUS MEMORY AND SETTLED CALLS' : 'FROM ON-CHAIN PREDICT HISTORY'}</span><h2>Crew scoreboard</h2></div>
         <img className="sec-ic" src="/art/v2/nakama-icon-trophy.webp" alt="" />
       </div>
       {rows.length === 0 ? (
