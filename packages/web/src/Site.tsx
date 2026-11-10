@@ -17,7 +17,7 @@ const SHOTS = [
 const WHAT = [
   ['coral', 'nakama-icon-shield', 'A crew wallet on your phone', 'Nakama makes a Sui wallet right on your phone. Your keys stay there; nobody pools your money.'],
   ['butter', 'nakama-icon-megaphone', 'One-tap BTC calls', 'A friend calls “BTC above $X in 5 minutes”. Everyone taps in once with 2 USDC on DeepBook Predict.'],
-  ['mint', 'nakama-icon-stopwatch', 'Notifications', 'Your phone pings you the moment a crewmate posts a call, and again when Pyth settles it.'],
+  ['mint', 'nakama-icon-stopwatch', 'Notifications', 'Your phone pings you the moment a crewmate posts a call.'],
   ['pink', 'nakama-icon-trophy', 'A scoreboard that remembers', 'Wins, streaks and every call live on as Walrus memories, so the crew knows who is actually right.'],
 ] as const;
 
