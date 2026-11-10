@@ -5,13 +5,15 @@ import { Notice, short } from '../ui';
 
 type Tx = {
   digest: string;
-  checkpoint?: string;
-  timestampMs?: string;
-  transaction?: { data?: { sender?: string } };
-  effects?: { status?: { status: string; error?: string }; gasUsed?: { computationCost: string; storageCost: string; storageRebate: string } };
-  events?: { type: string; parsedJson?: Record<string, unknown> }[];
-  balanceChanges?: { owner: { AddressOwner?: string } | string; coinType: string; amount: string }[];
-  objectChanges?: { type: string; objectType?: string; objectId?: string }[];
+  checkpoint: string | null;
+  sender: string | null;
+  status: string;
+  error: string | null;
+  gasMist: number;
+  calls: string[];
+  events: string[];
+  balanceChanges: { owner: string; coinType: string; amount: string }[];
+  objectChanges: { type: string; objectType: string | null; objectId: string }[];
 };
 const coin = (t: string) => (t.endsWith('::usdc::USDC') ? ['USDC', 6] : t.endsWith('::sui::SUI') ? ['SUI', 9] : [t.split('::').pop() ?? t, 0]) as [string, number];
 const typeName = (t: string) => t.replace(/0x[0-9a-f]{20,}/g, (a) => short(a));
@@ -22,8 +24,8 @@ export function TxPage({ n }: { n: N }) {
   const [tx, setTx] = useState<Tx | null>(null);
   const [err, setErr] = useState<string | null>(null);
   useEffect(() => { api<{ tx: Tx }>(`/fork/tx/${d}`).then((r) => setTx(r.tx)).catch((e) => setErr(String(e.message ?? e))); }, [d]);
-  const ok = tx?.effects?.status?.status === 'success';
-  const gas = tx?.effects?.gasUsed ? (Number(tx.effects.gasUsed.computationCost) + Number(tx.effects.gasUsed.storageCost) - Number(tx.effects.gasUsed.storageRebate)) / 1e9 : null;
+  const ok = tx?.status === 'success';
+  const gas = tx ? tx.gasMist / 1e9 : null;
   return (
     <main className="page" data-film="fork-tx">
       <div className="page-head">
@@ -32,7 +34,7 @@ export function TxPage({ n }: { n: N }) {
           <h1>Transaction</h1>
           <p className="mono" style={{ overflowWrap: 'anywhere' }}>{d}</p>
         </div>
-        {tx && <span className={`stamp ${ok ? '' : 'bad'}`}>{ok ? 'SUCCESS' : (tx.effects?.status?.status ?? '?').toUpperCase()}</span>}
+        {tx && <span className={`stamp ${ok ? '' : 'bad'}`}>{ok ? 'SUCCESS' : tx.status.toUpperCase()}</span>}
       </div>
       {err && <Notice error>{err}</Notice>}
       {!tx && !err && <div className="c3 skeleton" style={{ height: 240 }} />}
@@ -40,10 +42,11 @@ export function TxPage({ n }: { n: N }) {
         <div className="board-grid">
           <div className="stack">
             <section className="c3 txc">
-              <span className="k">EFFECTS · READ FROM THE FORK RPC (sui_getTransactionBlock)</span>
+              <span className="k">EFFECTS · READ FROM THE FORK'S OWN RPC</span>
               <dl className="txdl">
-                <dt>Status</dt><dd className={ok ? 'up' : 'down'}>{tx.effects?.status?.status}{tx.effects?.status?.error ? ` · ${tx.effects.status.error}` : ''}</dd>
-                <dt>Sender</dt><dd className="mono">{tx.transaction?.data?.sender ? short(tx.transaction.data.sender) : '–'}</dd>
+                <dt>Status</dt><dd className={ok ? 'up' : 'down'}>{tx.status}{tx.error ? ` · ${tx.error}` : ''}</dd>
+                <dt>Sender</dt><dd className="mono">{tx.sender ? short(tx.sender) : '–'}</dd>
+                <dt>Move calls</dt><dd className="mono">{tx.calls.length ? tx.calls.join(', ') : '–'}</dd>
                 <dt>Checkpoint</dt><dd className="mono">{tx.checkpoint ?? 'pending'}</dd>
                 <dt>Gas</dt><dd className="mono">{gas != null ? `${gas.toFixed(4)} SUI` : '–'}</dd>
                 <dt>Network</dt><dd>{n.status?.rpc ?? 'LOCAL FORK'}</dd>
@@ -51,9 +54,9 @@ export function TxPage({ n }: { n: N }) {
             </section>
             <section className="c3 txc">
               <span className="k">BALANCE CHANGES</span>
-              {(tx.balanceChanges ?? []).map((b, i) => {
-                const [sym, dec] = coin(b.coinType);
-                const owner = typeof b.owner === 'string' ? b.owner : b.owner.AddressOwner ?? 'object';
+              {tx.balanceChanges.map((b, i) => {
+                const [sym, dec] = coin(b.coinType ?? '');
+                const owner = b.owner;
                 const amt = Number(b.amount) / 10 ** dec;
                 return <div key={i} className="trade-row"><span className="mono">{short(owner)}</span><b className={`mono ${amt < 0 ? 'down' : 'up'}`}>{amt > 0 ? '+' : ''}{amt.toFixed(dec ? 4 : 0)} {sym}</b></div>;
               })}
@@ -61,12 +64,12 @@ export function TxPage({ n }: { n: N }) {
           </div>
           <div className="stack">
             <section className="c3 txc">
-              <span className="k">EVENTS · {tx.events?.length ?? 0}</span>
-              {(tx.events ?? []).map((e, i) => <div key={i} className="trade-row"><span className="mono w">{typeName(e.type)}</span></div>)}
+              <span className="k">EVENTS · {tx.events.length}</span>
+              {tx.events.map((e, i) => <div key={i} className="trade-row"><span className="mono w">{typeName(e)}</span></div>)}
             </section>
             <section className="c3 txc">
-              <span className="k">OBJECTS · {tx.objectChanges?.length ?? 0}</span>
-              {(tx.objectChanges ?? []).slice(0, 10).map((o, i) => <div key={i} className="trade-row"><span className="chip">{o.type}</span><span className="mono w">{typeName(o.objectType ?? '')}</span></div>)}
+              <span className="k">OBJECTS · {tx.objectChanges.length}</span>
+              {tx.objectChanges.slice(0, 10).map((o, i) => <div key={i} className="trade-row"><span className="chip">{o.type}</span><span className="mono w">{typeName(o.objectType ?? '')}</span></div>)}
             </section>
           </div>
         </div>
