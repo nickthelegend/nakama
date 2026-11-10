@@ -45,6 +45,10 @@ The status on Nov 9: **15 Nakama memories are on Walrus mainnet.** A crew can br
 
 The plan to meet the event's minimum of 10 memories is small and concrete: one crew, two members (2 membership records), three settled calls (3 call records and 6 member results). That makes 11 or more memories, and the first five settled calls produce the first playbook.
 
+## What changed on Nov 10
+
+Nakama is now a friendly crew wallet, and the crew comes first: you create a public or private crew, invite friends by link or QR code, or find one in the public rooms lobby, and each friend taps in to a short BTC call with 2 USDC from their own wallet. The web app is live in dry-run at https://nakama.201-18-198-162.sslip.io and https://nakama-two-weld.vercel.app, reading mainnet through Tatum and writing crew memberships to Walrus mainnet (the hosted "Night Owls" crew's first membership is blob `uZZrsaNEiVnXIkFyNjjSzOUfDUcSz6NKM0OBnfJIr5s`). Crew recaps now come from Claude Haiku, using only recalled Walrus facts. The new Expo phone app creates its own Sui wallet in secure storage, shows a deposit QR, joins crews by QR, photo or pasted invite, and notifies you when a crewmate calls; so far only the new-call notification has actually fired. One tap was signed on the phone and executed on a local fork of Sui mainnet (digests `GZXecpb…` for the deposit and `93zriKw1…` for the tap), with no real money. An Android APK is up for sideloading, debug-signed and not yet installed on a real device. No mainnet transaction with real funds has been sent.
+
 ## What's next
 
 Fund the hub, which funds the two demo members (they exist and are unfunded today), run one real two-member round on mainnet through Tatum, let it settle, and write the first memories. We'll update this post with the digests and blob IDs when that happens.

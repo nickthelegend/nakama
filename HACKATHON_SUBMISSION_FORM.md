@@ -14,17 +14,26 @@ Nakama (仲間, Japanese for "crew" or "companions")
 
 ## One-liner
 
-Your friends call short BTC moves, and you join with one tap. Each person signs their own small bet, and the crew remembers what worked.
+A friendly crew wallet: start a crew, invite friends by link or QR, and when someone calls a short BTC move on DeepBook Predict, each friend taps in with 2 USDC from their own wallet. The crew remembers what worked on Walrus Memory.
 
 ## Description
 
-Nakama is a group-chat-style app for a small crew of friends who make short-term Bitcoin calls together. One member posts a call, for example "BTC above $73,766 in the next 5 minutes, holding the 5m low". The call card shows a countdown, the live market odds and who has joined. Every other member taps once to join with their own money. Their own Sui wallet signs their own DeepBook Predict order, so nobody holds anyone else's funds.
+Nakama is a friendly crew wallet for a small group of friends who make short Bitcoin calls together. BTC is DeepBook Predict's only underlying, so every call is a 1-minute or 5-minute BTC up/down market.
 
-Nakama checks Predict's live odds before a call goes up. Predict only accepts a new one-sided bet while its win probability is between 15% and 50%. The composer shows the odds for the typed strike and disables Post outside that band, and the server refuses such calls too. The call card re-reads the odds every 8 seconds and switches to "Entry closed" when the price drifts out, so no member taps into a refusal.
+**Crew first.** You create a public or private crew, invite friends by link or QR code, or browse the public rooms lobby. One member posts a call, for example "BTC above $73,766 in the next 5 minutes". The call card shows a countdown, the live odds and who has tapped in. Each friend taps in with 2 USDC from their own wallet, and their own wallet signs their own Predict order, so nobody holds anyone else's funds.
 
-After the market settles, Nakama writes the outcome to Walrus Memory: the call, each member's result, and every five calls a crew playbook. The next time a similar setup comes up, it recalls the crew's record for that setup and the member's own record. It uses them to suggest a stake size, flag cold setups and pre-fill the composer with the crew's best setup.
+Nakama checks Predict's live odds before a call goes up. Predict only accepts a new one-sided bet while its win probability is between 15% and 50%. The composer disables Post outside that band, the server refuses such calls too, and the call card re-reads the odds every 8 seconds and switches to "Entry closed" when the price drifts out.
 
-**Status today.** Mainnet market reads, odds checks, quotes and transaction dry-runs work. The full write path (fund a Predict account, join a call with a real queued order, verify the receipt) has been proven on a **local fork of Sui mainnet** only. **PENDING:** a signed crew round on mainnet runs in the funded live run on Nov 10. The hub holds 26.28 USDC and 2.26 SUI. Each demo member gets 2.5 USDC and 0.2 SUI, and the run is `packages/server/scripts/live-run.ts`, rehearsed on the fork at those amounts. **Walrus Memory is live: 15 Nakama memories on mainnet** (Nov 9, 22:45 UTC). They come from crew `aa3e80a3` ("Public desk"): 3 membership memories, plus the 12 settled Predict trades of its three public members, written as their result memories.
+After the market settles, Nakama writes the outcome to Walrus Memory: the call, each member's result, and every five calls a crew playbook. Next time a similar setup comes up, it recalls the crew's record and the member's own record to suggest a stake, flag cold setups and pre-fill the composer. Claude Haiku (`claude-haiku-5-5`) writes the crew recap from the recalled facts only.
+
+**The phone app** (`packages/mobile`, Expo) creates its own Sui wallet in secure storage, shows a deposit QR, joins a crew by live QR, a QR in a photo or a pasted invite, opens a full-screen crew room, and notifies you when a crewmate calls.
+
+**Status today.**
+- **Web live in dry-run** at https://nakama.201-18-198-162.sslip.io and https://nakama-two-weld.vercel.app: live mainnet markets, odds, quotes and dry-runs through Tatum, and Walrus Memory writes on. The server never signs or sends a Sui transaction.
+- **Android APK** at https://nakama.201-18-198-162.sslip.io/download/nakama.apk: a debug-signed sideload, **not yet installed on a device**.
+- **On a LOCAL FORK of Sui mainnet** (no real funds): the web write path (fund, join, verify) and a tap **signed on the phone** (deposit `GZXecpbAynjKE8yDYhM2fcM4GkpSPctWzNorp73c2uMg`, tap `93zriKw1QZCJvkuurmZiHUHgYP5xYkW5GVEXGRyU3co7`). These digests are fork-only, not on Suiscan.
+- **Walrus Memory is live on mainnet:** 15 memories from crew `aa3e80a3` ("Public desk"), plus the hosted "Night Owls" crew's membership blobs.
+- **PENDING:** any signed crew round on mainnet with real funds. None has been sent.
 
 ## How it uses Walrus Memory
 
@@ -42,11 +51,13 @@ Nakama uses `@mysten-incubation/memwal` against the mainnet relayer `https://rel
 - mark a setup **cold** after 3 or more similar calls with under 40% wins;
 - suggest a stake: the member's average size × a confidence factor from their hit rate, × 1.5 on a crew win streak of 3 or more, between 2 and 10 USDC;
 - pre-fill the composer from the crew's best-performing setup (at least 2 calls);
-- write an optional crew recap with an LLM (OpenRouter), which is told to use only the recalled facts.
+- write a crew recap with Claude Haiku (`claude-haiku-5-5`, cached per crew and call), which is told to use only the recalled facts. OpenRouter is the fallback without an Anthropic key.
 
 Writes are capped at 30 a minute and back off on HTTP 429. Mainnet blobs took over 60 s to certify, so each write waits up to 300 s.
 
-**Live on mainnet (Nov 9):** 15 memories in `nakama-v1:crew:aa3e80a3` (3) and three `nakama-v1:member:<address>` namespaces (7, 4 and 1). They were counted with `packages/core/scripts/walrus-count.ts` against the relayer's namespace list. The funded run adds a real crew's joins, call, results and, every five settled calls, a playbook.
+**Live on mainnet (Nov 9):** 15 memories in `nakama-v1:crew:aa3e80a3` (3) and three `nakama-v1:member:<address>` namespaces (7, 4 and 1). They were counted with `packages/core/scripts/walrus-count.ts` against the relayer's namespace list.
+
+**Hosted crew (Nov 10):** the hosted server writes a membership memory when someone joins a crew. The public crew "Night Owls" (`e8175e6a`, 2 members) has its membership blobs on Walrus mainnet, for example [`uZZrsaNEiVnXIkFyNjjSzOUfDUcSz6NKM0OBnfJIr5s`](https://walruscan.com/mainnet/blob/uZZrsaNEiVnXIkFyNjjSzOUfDUcSz6NKM0OBnfJIr5s) and [`bPSbylWd_GYS54oYAcYlAihx24xMMQALY8GOAeILwOc`](https://walruscan.com/mainnet/blob/bPSbylWd_GYS54oYAcYlAihx24xMMQALY8GOAeILwOc). Settled calls, results and playbooks from a real-funds round are **PENDING** with that round.
 
 ## How it uses Tatum
 
@@ -57,10 +68,11 @@ The server's chain client uses **Tatum's native Sui gRPC gateway** (`sui-mainnet
 - Tatum's free plan allows 3 requests a second, so one process-wide limiter spaces calls 400 ms apart and retries 429s with backoff.
 - **Exception:** Tatum's gateway refuses `LedgerService/ListEvents` (`PERMISSION_DENIED`). Event scans for member history and the fill/settlement watcher therefore use the public Sui fullnode over gRPC, and the code labels that source.
 
-**Verified on Nov 9 2026:** through Tatum, `getReferenceGasPrice` returned 100, and `getTransaction` returned a historical Predict transaction that Nakama decoded into a queued fill. **PENDING:**
-- In that first smoke test, simulation through Tatum returned HTTP 429. The rate limiter was added afterwards, and quotes through Tatum need re-checking with it.
-- The recorded demo and film ran through the public fullnode, and the UI shows the badge "dev RPC (not Tatum)".
-- Sending a transaction through Tatum has not been exercised on mainnet or on the fork.
+**Verified on Nov 9 2026:** through Tatum, `getReferenceGasPrice` returned 100, and `getTransaction` returned a historical Predict transaction that Nakama decoded into a queued fill. In that first smoke test, simulation through Tatum returned HTTP 429; the rate limiter was added afterwards.
+
+**Hosted, Nov 10:** the VPS server answers `/status` with `rpc: "Tatum"` and `mainnetWrites: false`, and `/markets` returned live BTC markets through it (checked 14:20 UTC).
+
+**PENDING:** sending a signed transaction through Tatum has not been exercised on mainnet.
 
 ## Tech stack
 
@@ -68,16 +80,19 @@ The server's chain client uses **Tatum's native Sui gRPC gateway** (`sui-mainnet
 - Sui: `@mysten/sui` 2.37 gRPC client, `@mysten/deepbook-v3/predict` 2.8.1 (`planMint`, `enqueuePlan`, `waitForOutcome`), `@mysten/dapp-kit-react` wallet connection.
 - Tatum Sui gRPC gateway (`@grpc/grpc-js`, `@protobuf-ts/grpc-transport`).
 - Walrus Memory: `@mysten-incubation/memwal`, mainnet relayer.
-- Optional OpenRouter recap (free Nemotron model by default).
-- Tests: `pnpm test` 5/5 (memory policy, plus trade decoding from saved real mainnet queue-event payloads); `pnpm test:live` reads live mainnet. See [TESTING.md](TESTING.md).
+- Crew recap: Claude Haiku (`claude-haiku-5-5`) when `ANTHROPIC_API_KEY` is set (`a6a4b8c`); OpenRouter fallback.
+- Mobile: `packages/mobile`, Expo SDK 58 (`expo-secure-store` wallet, `expo-camera` and `expo-image-picker` QR join, local notifications).
+- Deploy: Docker image behind nginx and Traefik on a VPS with dry-run flags forced off; static web build on Vercel.
+- Tests: `pnpm test` 7/7 (core 5: memory policy, plus trade decoding from saved real mainnet queue-event payloads; server 2; run Nov 10); `pnpm test:live` reads live mainnet. See [TESTING.md](TESTING.md).
 
 ## Repository
 
-https://github.com/nickthelegend/nakama (secret scan passed Nov 10; Nick approved making it public, flipped to public before submitting).
+https://github.com/nickthelegend/nakama (secret scan passed Nov 10; Nick approved making it public. **Still private as of Nov 10, 14:20 UTC**: flip to public before submitting).
 
 ## Demo video
 
-`videos/nakama/nakama-film-v2.mp4` (in the grokbot workspace). **PENDING:** public upload link. It shows real mainnet reads and dry-runs with two public Predict addresses in a read-only preview crew, and labels them as such. Nothing is signed or sent in it.
+- Web film: `videos/nakama/nakama-film-v6.mp4` (3:12, grokbot workspace). Link: **Nick fills** (Drive).
+- Phone film: `videos/nakama/mobile/nakama-ios.mp4` (1:27), the Expo app in the iOS Simulator. Link: **Nick fills** (Drive).
 
 ## Tatum account ID
 
@@ -107,4 +122,5 @@ Drafts in [POST.md](POST.md). **PENDING:** Nick posts on X and/or LinkedIn.
 - **Codex (OpenAI):** wrote much of the TypeScript from reviewed briefs.
 - **ChatGPT image generation:** the crew art, stickers, onboarding slides, title card and social images (prompts in [docs/ART.md](docs/ART.md)).
 - **Chatterbox:** the synthetic voiceover in the film.
-- The film is cut from a one-take recording of the real app against mainnet (chapters in `videos/round2/nakama-raw.md`). Its numbers come from the app's live reads and dry-runs.
+- **In the product:** Claude Haiku (`claude-haiku-5-5`) writes the crew recap from recalled Walrus facts only. It never places or sizes a bet.
+- The films show the real app; program output is not edited. Fork scenes are labelled LOCAL FORK.

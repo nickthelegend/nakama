@@ -1,6 +1,8 @@
 # Nakama 仲間
 
-**Make small Bitcoin calls with your friends, as a crew.** One friend posts a call ("BTC above $73,766 in 5 minutes"), and everyone else joins with one tap. Each person signs their own small bet from their own wallet, so nobody holds anyone else's money. After each round, the crew's results go into Walrus Memory, and next time Nakama recalls what worked for this crew to suggest a stake and warn about setups that keep losing. (Market reads and dry-runs are live on mainnet today. **Walrus Memory is live with 15 Nakama memories on mainnet**: a crew of three public Predict traders, their joins and their settled trades. Real signed rounds are **PENDING** the funded mainnet run, see the status table.)
+**A friendly crew wallet.** Start a crew with your friends, public or private, and invite them by link or QR code. When someone calls a short Bitcoin move ("BTC above $73,766 in 5 minutes"), each friend taps in with 2 USDC from their own wallet, so nobody holds anyone else's money. After each round, the crew's results go into Walrus Memory, and next time Nakama recalls what worked to suggest a stake and warn about setups that keep losing. BTC is DeepBook Predict's only underlying, so every call is a BTC 1m or 5m market. There is a web app and an Expo phone app with its own Sui wallet.
+
+**Honest status:** the web app is live in **dry-run** (real mainnet markets, odds, quotes and simulations through Tatum, real Walrus mainnet memories). Signed taps ran only on a **LOCAL FORK of Sui mainnet**, including one signed on the phone. **No mainnet transaction with real funds has been sent.**
 
 Built for **Total Recall (Tatum x Walrus Memory)**, track **03 Consumer Finance Apps**, on Sui mainnet with DeepBook Predict. Submission answers: [HACKATHON_SUBMISSION_FORM.md](HACKATHON_SUBMISSION_FORM.md). Blog post: [docs/BLOG.md](docs/BLOG.md).
 
@@ -18,21 +20,24 @@ Built for **Total Recall (Tatum x Walrus Memory)**, track **03 Consumer Finance 
 
 Deploys: `deploy/redeploy.sh` (VPS), `deploy/vercel.sh` (Vercel). The APK is built locally (`npx expo prebuild --platform android`, then `./gradlew assembleRelease` in `packages/mobile/android`) and copied to `/opt/hk/nakama/download/` on the VPS, which nginx serves as `application/vnd.android.package-archive`.
 
-## Status: live today vs pending keys
+## Status: live today vs pending
 
 | Piece | Today | What unblocks it |
 |---|---|---|
+| Crews: create public or private, invite by link or QR, public rooms lobby | **Live** on the hosted web app (`486ed35`) | – |
 | Live BTC markets, odds and the 15–50% entry-band check | **Live** on Sui mainnet | – |
-| One-tap quote and transaction dry-run | **Live** on mainnet, through the public fullnode (UI badge "dev RPC (not Tatum)") | Re-check through Tatum with the new rate limiter; the first Tatum smoke test got HTTP 429 on simulation |
-| Tatum gRPC reads | **Verified Nov 9**: gas price, plus `getTransaction` decoded into a Predict fill | – |
+| One-tap quote and transaction dry-run | **Live** on the hosted server, which reports `rpc: "Tatum"` (Nov 10, 14:20 UTC). Local runs without a key use the public fullnode and show "dev RPC (not Tatum)" | – |
+| Tatum gRPC reads | **Verified Nov 9**: gas price, plus `getTransaction` decoded into a Predict fill; hosted `/markets` answers through Tatum | – |
 | Member history from on-chain fills and payouts | **Live** (event scans use the public fullnode, because Tatum's gateway refuses `ListEvents`) | – |
-| Funding a Predict account, joining a call with a real queued order, verifying the receipt | **LOCAL FORK only** ([docs/FORK.md](docs/FORK.md)) | **PENDING:** hub funding (40 USDC + 2.5 SUI to `0xf5887bcf…1f11`). One signed crew round on mainnet needs about 6 USDC + 0.6 SUI of it for the two demo members, who are unfunded today |
+| Funding a Predict account, joining a call with a real queued order, verifying the receipt | **LOCAL FORK only** ([docs/FORK.md](docs/FORK.md)), from the web app and from the phone (see [Mobile app](#mobile-app-expo)) | **PENDING:** Nick's yes to run a signed crew round with real funds |
 | Fills, settlement and payouts recorded by the watcher | **Not proven anywhere.** The fork has no Predict keeper and a frozen clock | **PENDING:** a real mainnet round that the keeper fills and the market settles |
-| Sending a signed transaction through Tatum | **Not exercised** | **PENDING:** the same mainnet round |
-| Walrus Memory writes and recall | **Live: 15 memories on mainnet** (Nov 9). Crew `aa3e80a3` ("Public desk"): 3 memberships, plus 12 settled Predict trades of its three public members written as their result memories (`POST /crews/:id/remember-history`). Counted with `packages/core/scripts/walrus-count.ts` | The funded run adds a real crew's joins, call, results and playbook. Memories are written when members join and when calls settle |
-| LLM crew recap | Built, off without a key | `OPENROUTER_API_KEY` |
-| Public repo and film link | **PENDING** | Secret scan and Nick's yes; film upload |
-| Tatum account ID (form), published blog and post | **PENDING** | Nick |
+| Sending a signed transaction through Tatum | **Not exercised** on mainnet | **PENDING:** the same mainnet round |
+| Walrus Memory writes and recall | **Live on mainnet.** 15 memories from crew `aa3e80a3` ("Public desk", Nov 9): 3 memberships plus 12 settled Predict trades of its three public members as result memories, counted with `packages/core/scripts/walrus-count.ts`. Plus the hosted **Night Owls** crew's membership blobs (Nov 10, linked in [Live](#live)) | Settled calls, results and a playbook come with a real mainnet round |
+| Crew recap | **Live** on Claude Haiku (`claude-haiku-5-5`, `a6a4b8c`); the hosted `/status` reports `recap: "Claude (claude-haiku-5-5)"`. OpenRouter is the fallback | – |
+| Expo phone app | Wallet, deposit QR, QR/photo/paste join, crew room and new-call notification **work** (iOS Simulator, Expo Go); a tap was signed on the phone on the LOCAL FORK. Android APK is a debug-signed sideload, **not yet installed on a device** | A device install; a standalone build for background notifications |
+| Tests | `pnpm test`: **7 passing** (core 5, server 2; Nov 10) | – |
+| Public repo | **PENDING**: private as of Nov 10, 14:20 UTC | Nick flips it to public |
+| Film links, social post | **PENDING** | Nick uploads and posts |
 
 ## Try it
 
@@ -75,7 +80,7 @@ Live signing needs `NAKAMA_ALLOW_MAINNET=I_ACKNOWLEDGE_REAL_USDC`, a member wall
 | Account ID (public, on chain) | `0xd2ca3cbe1bd663a5fe7df7c14590451bbc712255cfee59966b0b8413cdaa335a`, owner `0x0cff6ac3b0396c3b449de58472dcf9cfd55f0bb2aefaca92c43315de128c7e93` |
 | How it was found | On chain, not from a dashboard. The relayer's `GET https://relayer.memory.walrus.xyz/config` gives package `0xe7c16fbea0560e7057e2bf7422feaa4fb313749fc69c9e9092fac7a33b81d7f5`. Its `account::DelegateKeyAdded` events list Nakama's delegate key (label "3") under that account |
 | Delegate key | Nakama signs with its own delegate key. `POST /api/stats` on the mainnet relayer returned the owner above |
-| Memories stored | **0.** They need the funded mainnet run |
+| Memories stored | **15** from crew `aa3e80a3` (Nov 9, counted with `packages/core/scripts/walrus-count.ts`), plus the Night Owls membership blobs in [Live](#live) |
 | Write wait | Mainnet blobs took over 60 s to certify, so each write now waits up to 300 s (`872371c`) |
 
 **LOCAL FORK of Sui mainnet (checkpoint 343353046): fork-only digests.** These exist only on a local fork. They are **not on Suiscan** and moved no real funds. They show that the write path executes real Move code.
@@ -91,7 +96,10 @@ The fork could not show fills, settlement, payouts, Walrus writes or sending thr
 
 ## Film
 
-`videos/nakama/nakama-film-v2.mp4`, in the grokbot workspace and **not public yet** (PENDING upload). It shows real mainnet reads and dry-runs with two public addresses in a labelled read-only preview crew. Nothing is signed or sent, and the recording shows "dev RPC (not Tatum)" and "Setup required" for Walrus Memory.
+- `videos/nakama/nakama-film-v6.mp4` (3:12): the web app. **Not public yet** (PENDING upload).
+- `videos/nakama/mobile/nakama-ios.mp4` (1:27): the Expo app in the iOS Simulator. **Not public yet** (PENDING upload).
+
+Both are in the grokbot workspace, not this repo. Earlier cuts (v2 to v5) are kept there too.
 
 ## How it works (technical)
 
