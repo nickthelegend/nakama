@@ -139,19 +139,26 @@ function Thread({ n }: { n: N }) {
       {crew && events.length === 0 && <p className="hint-bubble">Nobody's here yet. Join the crew, then share the invite link.</p>}
       {events.map((e) =>
         e.kind === 'call' && e.call ? (
-          e.call === n.active ? (
-            <div key={e.key} className="trade-wrap">
-              <LiveCall n={n} call={e.call} />
-              <div className="tap-row"><TapButton n={n} xl /></div>
+          <div key={e.key} className={`bmsg ${e.who === n.owner ? 'me' : ''}`}>
+            <Avatar address={e.who} />
+            <div className="bcol">
+              <span className="bname">{e.who === n.owner ? 'You' : short(e.who)} · called BTC</span>
+              <div className="bubble2">{e.call.why || callTitle(e.call)}</div>
+              {e.call === n.active ? (
+                <div className="rich">
+                  <LiveCall n={n} call={e.call} />
+                  <div className="tap-row"><TapButton n={n} xl /></div>
+                </div>
+              ) : (
+                <div className="rich"><PastCall n={n} e={e} /></div>
+              )}
             </div>
-          ) : (
-            <PastCall key={e.key} n={n} e={e} />
-          )
+          </div>
         ) : (
           <EventRow key={e.key} e={e} n={n} />
         ),
       )}
-      <Toast n={n} />
+      <div className="receipt"><Toast n={n} /></div>
     </div>
   );
 }
@@ -179,9 +186,9 @@ function ChatComposer({ n }: { n: N }) {
   const ready = n.joined && !n.busy && !!n.marketId && !!n.why.trim() && !n.draftOutOfBand;
   if (!n.crew)
     return (
-      <form className="composer" id="chat-composer" onSubmit={(e) => { e.preventDefault(); if (n.name.trim()) n.create(); }}>
+      <form className="composer composer2" id="chat-composer" onSubmit={(e) => { e.preventDefault(); if (n.name.trim()) n.create(); }}>
         <p className="composer-k"><b>1</b> Start a crew</p>
-        <div className="composer-box">
+        <div className="pill">
           <input value={n.name} onChange={(e) => n.setName(e.target.value)} placeholder="Crew name, e.g. Night Owls" aria-label="Crew name" maxLength={40} data-film="crew-name" />
           <button className="b3 b3-sm" disabled={n.busy || !n.name.trim()} data-film="start-crew">START A CREW</button>
         </div>
@@ -195,26 +202,28 @@ function ChatComposer({ n }: { n: N }) {
       </div>
     );
   return (
-    <div className="composer" id="chat-composer" data-film="composer">
-      <div className="hints">
-        <span className="lbl">Post a call:</span>
-        {[n.next1, n.next5].map((m, i) => m && (
-          <button key={m.id} className={`hint tone-${i ? 'mint' : 'butter'} ${m.id === n.marketId ? 'on' : ''}`} aria-pressed={m.id === n.marketId} onClick={() => n.setMarketId(m.id)}>{m.cadence} min · {n.clock(m.expiryMs)}</button>
-        ))}
-        {(['up', 'down'] as const).map((d) => (
-          <button key={d} className={`hint tone-${d === 'up' ? 'coral' : 'pink'} ${n.direction === d ? 'on' : ''}`} aria-pressed={n.direction === d} onClick={() => n.setDirection(d)}>{d === 'up' ? 'Above ↑' : 'Below ↓'}</button>
-        ))}
+    <div className="composer composer2" id="chat-composer" data-film="composer">
+      <div className="call-chips" role="group" aria-label="Your call">
+        <span className="seg-mini" role="radiogroup" aria-label="Market">
+          {[n.next1, n.next5].map((m, i) => m && (
+            <button key={m.id} type="button" aria-pressed={m.id === n.marketId} onClick={() => n.setMarketId(m.id)}>{i ? '5 min' : '1 min'} <small className="mono">{n.clock(m.expiryMs)}</small></button>
+          ))}
+        </span>
+        <span className="seg-mini" role="radiogroup" aria-label="Direction">
+          {(['up', 'down'] as const).map((d) => (
+            <button key={d} type="button" aria-pressed={n.direction === d} onClick={() => n.setDirection(d)}>{d === 'up' ? '↑ Above' : '↓ Below'}</button>
+          ))}
+        </span>
+        <label className="strike-chip"><TokenLogo sym="BTC" size={20} /><input type="number" step="1" inputMode="numeric" aria-label="Strike in USD" value={n.strike} placeholder={String(n.suggestedStrike ?? 'strike')} onChange={(e) => n.setStrike(e.target.value)} /></label>
+        <span className={`odds-chip ${n.draftOutOfBand ? 'out' : n.draftOdds?.probability != null ? 'in' : ''}`} title="Predict odds for this strike; only 15–50% can be joined">
+          {n.direction === 'range' ? 'quoted on tap' : n.draftOdds?.probability != null ? `${pct(n.draftOdds.probability)}% odds` : '…'}
+        </span>
       </div>
-      <form className="composer-box" onSubmit={(e) => { e.preventDefault(); if (ready) n.postCall(); }}>
-        <span className="strike-in"><TokenLogo sym="BTC" size={22} /><input type="number" step="1" inputMode="numeric" aria-label="Strike in USD" value={n.strike} placeholder={String(n.suggestedStrike ?? 'strike')} onChange={(e) => n.setStrike(e.target.value)} /></span>
-        <input value={n.why} onChange={(e) => n.setWhy(e.target.value)} placeholder="Why? What do you see…" aria-label="Why" maxLength={280} data-film="chat-why" />
+      <form className="pill" onSubmit={(e) => { e.preventDefault(); if (ready) n.postCall(); }}>
+        <input value={n.why} onChange={(e) => n.setWhy(e.target.value)} placeholder={`Say why, then send: BTC ${n.direction === 'down' ? 'below' : 'above'} ${n.strikeValue ? usd(Number(n.strikeValue)) : 'the strike'}`} aria-label="Why" maxLength={280} data-film="chat-why" />
         <button className="send" aria-label="Post call" disabled={!ready} data-film="chat-send"><Ic name="send" size={19} /></button>
       </form>
-      <p className={`composer-note ${n.draftOutOfBand ? 'down' : ''}`}>
-        {n.direction === 'range' ? 'Range calls are quoted when the crew taps.'
-          : n.draftOdds?.probability != null ? `Predict odds at ${usd(Number(n.strikeValue))}: ${pct(n.draftOdds.probability)}% · ${n.draftOutOfBand ? 'outside the 15–50% entry band, nobody could join' : 'inside the 15–50% entry band'}`
-          : n.suggestedStrike != null ? `Suggested strike from the live forward: ${usd(n.suggestedStrike)}` : 'Reading the live BTC markets…'}
-      </p>
+      {n.draftOutOfBand && <p className="composer-note down">Outside the 15–50% entry band: nobody could join. Move the strike nearer the money.</p>}
     </div>
   );
 }

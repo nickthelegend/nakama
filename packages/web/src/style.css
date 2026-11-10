@@ -1273,3 +1273,66 @@ h1, h2, h3, h4, .brand, .trade-title b, .big, .v, .bal3 b, .boxes3 b { font-fami
   .welcome h2 { font-size: 22px; }
   .side .reveal3 { grid-template-columns: 1fr; }
 }
+
+/* =====================================================================
+   CHAT: messenger finish (bubbles, pills, rich call messages, pill composer)
+   ===================================================================== */
+.chat { background: #fffaf2; }
+.chat .messages { gap: 10px; padding: 18px 22px 20px; background-color: #fff5e4; background-image: radial-gradient(rgba(255, 111, 89, .07) 1.2px, transparent 1.6px), radial-gradient(rgba(59, 31, 74, .04) 1.2px, transparent 1.6px); background-size: 22px 22px, 22px 22px; background-position: 0 0, 11px 11px; }
+.chat .daysep { font-family: var(--display); font-weight: 800; font-size: 11px; letter-spacing: .08em; background: rgba(255, 255, 255, .8); border: 0; box-shadow: 0 2px 0 rgba(59, 31, 74, .06); }
+/* system events: small centred pills */
+.chat .th-event { align-self: center; justify-self: center; gap: 6px; padding: 3px 12px 3px 3px; border-radius: 999px; background: rgba(255, 255, 255, .85); border: 0; box-shadow: 0 2px 0 rgba(59, 31, 74, .06); font-size: 12.5px; color: var(--ink-2); max-width: 92%; }
+.chat .th-event .avatar { width: 22px; height: 22px; }
+.chat .th-event b { font-weight: 800; color: var(--ink); }
+.chat .th-event.tone-coral { background: #fff; box-shadow: inset 0 0 0 1.5px rgba(255, 111, 89, .35); }
+.chat .th-event.tone-mint { background: var(--mint-soft); }
+.chat .th-event.tone-pink { background: var(--pink-soft); }
+.chat .th-event .hash { font-size: 10.5px; }
+/* messages */
+.bmsg { display: flex; align-items: flex-end; gap: 8px; max-width: 100%; align-self: flex-start; }
+.bmsg > .avatar { width: 34px; height: 34px; flex: none; margin-bottom: 4px; box-shadow: 0 2px 0 rgba(59, 31, 74, .12); }
+.bmsg.me { align-self: flex-end; flex-direction: row-reverse; }
+.bcol { display: grid; gap: 6px; min-width: 0; max-width: min(640px, 100%); justify-items: start; }
+.bmsg.me .bcol { justify-items: end; }
+.bname { font-family: var(--display); font-weight: 800; font-size: 12px; color: var(--coral-ink); padding: 0 12px; }
+.bmsg.me .bname { color: var(--plum-3); }
+.bubble2 { padding: 10px 15px; border-radius: 20px 20px 20px 6px; background: #fff; color: var(--ink); font-size: 15.5px; line-height: 1.4; box-shadow: 0 2px 0 rgba(59, 31, 74, .08), 0 8px 18px -14px rgba(59, 31, 74, .35); max-width: 520px; overflow-wrap: anywhere; }
+.bmsg.me .bubble2 { border-radius: 20px 20px 6px 20px; background: linear-gradient(180deg, #ff8a72, var(--coral)); color: #fff; box-shadow: 0 2px 0 #d4472f, 0 8px 18px -14px rgba(212, 71, 47, .7); }
+.rich { width: min(560px, 100%); display: grid; gap: 8px; }
+.rich .call-card { border-radius: 22px; }
+.rich .trade { width: 100%; align-self: auto; }
+.receipt { align-self: center; width: min(560px, 100%); }
+.receipt:empty { display: none; }
+.chat .toast3 { box-shadow: 0 3px 0 var(--edge); }
+.chat .welcome { padding-top: 24px; }
+.chat .welcome img { box-shadow: 0 6px 0 var(--edge), 0 20px 30px -20px rgba(59, 31, 74, .4); }
+/* composer: one chip row and one pill */
+.composer2 { display: grid; gap: 8px; }
+.call-chips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.seg-mini { display: inline-flex; padding: 3px; gap: 2px; border-radius: 999px; background: var(--panel-3); }
+.seg-mini button { min-height: 36px; padding: 0 12px; border: 0; border-radius: 999px; background: transparent; font-family: var(--display); font-weight: 800; font-size: 13px; color: var(--ink-2); display: inline-flex; align-items: center; gap: 5px; }
+.seg-mini button small { font-size: 11px; opacity: .75; }
+.seg-mini button[aria-pressed='true'] { background: #fff; color: var(--plum); box-shadow: 0 2px 0 var(--edge); }
+.strike-chip { display: inline-flex; align-items: center; gap: 4px; height: 42px; padding: 0 6px 0 4px; border-radius: 999px; background: #fff; box-shadow: inset 0 0 0 2px var(--line-2); }
+.strike-chip input { width: 78px; border: 0; outline: none; background: transparent; font-family: var(--mono); font-size: 14px; color: var(--ink); }
+.strike-chip:focus-within { box-shadow: inset 0 0 0 2px var(--coral); }
+.odds-chip { display: inline-flex; align-items: center; height: 30px; padding: 0 10px; border-radius: 999px; background: var(--panel-3); font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--ink-2); }
+.odds-chip.in { background: var(--mint-soft); color: var(--mint-ink); }
+.odds-chip.out { background: var(--pink-soft); color: var(--pink-ink); }
+.pill { display: flex; align-items: center; gap: 8px; padding: 5px 5px 5px 18px; border-radius: 999px; background: #fff; box-shadow: inset 0 0 0 2px var(--line-2), 0 3px 0 var(--edge); }
+.pill:focus-within { box-shadow: inset 0 0 0 2px var(--coral), 0 0 0 4px rgba(255, 111, 89, .15); }
+.pill input { flex: 1; min-width: 0; height: 44px; border: 0; outline: none; background: transparent; font-size: 15.5px; color: var(--ink); }
+.pill .send { flex: none; width: 46px; height: 46px; border-radius: 50%; }
+.pill .b3 { flex: none; }
+.chat .composer2 { padding: 12px 16px 14px; }
+@media (max-width: 860px) {
+  .chat .messages { padding: 12px 10px 14px; }
+  .bcol { max-width: calc(100vw - 70px); }
+  .bubble2 { font-size: 14.5px; }
+  .bmsg > .avatar { width: 28px; height: 28px; }
+  .call-chips { gap: 6px; }
+  .seg-mini button { padding: 0 9px; font-size: 12px; min-height: 44px; }
+  .strike-chip { height: 44px; }
+  .strike-chip input { width: 64px; }
+  .odds-chip { display: none; }
+}
