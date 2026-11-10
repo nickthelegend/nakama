@@ -27,6 +27,7 @@ services:
       DEMO_SIGNER: ""
     volumes:
       - nakama-data:/app/data
+      - ../../download:/app/download:ro
     networks: [coolify]
     healthcheck:
       test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8080/api/health"]
