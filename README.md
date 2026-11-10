@@ -4,6 +4,20 @@
 
 Built for **Total Recall (Tatum x Walrus Memory)**, track **03 Consumer Finance Apps**, on Sui mainnet with DeepBook Predict. Submission answers: [HACKATHON_SUBMISSION_FORM.md](HACKATHON_SUBMISSION_FORM.md). Blog post: [docs/BLOG.md](docs/BLOG.md).
 
+## Live
+
+| What | Where |
+|---|---|
+| Web app + API (VPS, dry-run) | https://nakama.201-18-198-162.sslip.io (app at `/app`, API under `/api`) |
+| Web app on Vercel (same hosted API) | https://nakama-two-weld.vercel.app |
+| Android APK (sideload) | https://nakama.201-18-198-162.sslip.io/download/nakama.apk (40 MB, SHA-256 `bba6e7b6…a7af3a`, release build signed with the Android **debug keystore**: fine for a hackathon sideload, not for the Play Store; arm64-v8a only). Also on the landing under "Get the Nakama app" with a QR code |
+| iOS | Open in Expo Go (see [Mobile app](#mobile-app-expo)); a standalone build is coming |
+| Walrus Memory demo crew | Public crew **Night Owls** (`e8175e6a`). Its first membership memory is blob [`uZZrsaNEiVnXIkFyNjjSzOUfDUcSz6NKM0OBnfJIr5s`](https://walruscan.com/mainnet/blob/uZZrsaNEiVnXIkFyNjjSzOUfDUcSz6NKM0OBnfJIr5s) on Walrus mainnet (461 B, Seal-encrypted, certified Nov 10); the second member's is [`bPSbylWd_GYS54oYAcYlAihx24xMMQALY8GOAeILwOc`](https://walruscan.com/mainnet/blob/bPSbylWd_GYS54oYAcYlAihx24xMMQALY8GOAeILwOc) |
+
+**What is dry-run on the hosted server:** it reads live Sui mainnet markets and odds through Tatum, quotes every tap and simulates the Predict transaction, but it never signs or submits a Sui transaction (`NAKAMA_ALLOW_MAINNET` and `DEMO_SIGNER` are forced empty in `deploy/docker-compose.yml`, so `/execute` refuses). Walrus Memory writes are **on**: they move no member funds, and joins (outside preview crews), settled calls with each member's result, and crew playbooks are written to Walrus mainnet. Crew joins record the membership blob as the crew's `memoryBlobId`.
+
+Deploys: `deploy/redeploy.sh` (VPS), `deploy/vercel.sh` (Vercel). The APK is built locally (`npx expo prebuild --platform android`, then `./gradlew assembleRelease` in `packages/mobile/android`) and copied to `/opt/hk/nakama/download/` on the VPS, which nginx serves as `application/vnd.android.package-archive`.
+
 ## Status: live today vs pending keys
 
 | Piece | Today | What unblocks it |
@@ -136,6 +150,7 @@ npx expo start --ios             # or --android; opens in Expo Go
 - `GET /calls/:id/suggestion?address=...` and `POST /calls/:id/plan` `{address,size?}` for a quote and dry-run.
 - In live mode, the wallet signs the prepared transaction, then `POST /execute` submits its signed bytes and signature; `POST /calls/:id/orders` `{address,digest}` verifies it through Tatum and registers it.
 - `GET /members/:address/history` scans recent mainnet Predict queue fills and settlement payouts and returns decoded trades, transaction digests, and a wins/calls/streak record. The response includes scan counts and `complete`; `complete: false` means the bounded recent-event window is not an all-time record.
+- `DELETE /crews/:id` (admin, `Authorization: Bearer $NAKAMA_ADMIN_TOKEN`) archives a crew: it disappears from `GET /crews` and lookups, and stays in `crews.json`.
 - `GET /events` streams state notifications; `GET /markets` and `GET /status` expose live state and setup.
 
 Outside the opt-in demo signer below, the server holds no member private keys. Its chain client uses Tatum's native Sui gRPC gateway with the API key kept server side; Sui JSON-RPC has been deprecated. The browser wallet client uses the public Sui gRPC-web fullnode for wallet operations. `NAKAMA_DEV_SUI_RPC` enables a visible gRPC development override when Tatum is absent. Default server chain access fails closed with `Setup required: TATUM_API_KEY`. Tatum must allow `LedgerService/ListEvents` and `TransactionExecutionService/SimulateTransaction` for history, watcher scans, markets and quotes to work; gateway permission or rate-limit errors are returned rather than treated as successful reads.
